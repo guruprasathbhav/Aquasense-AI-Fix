@@ -1,0 +1,1791 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AquaSense AI</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=Syne:wght@700;800&family=JetBrains+Mono:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+*, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+:root {
+  --ink: #05080f;
+  --surface: #0b1120;
+  --card: #0e1628;
+  --card2: #111b2e;
+  --rim: #1a2d4a;
+  --rim2: #1f3657;
+  --water: #0ea5e9;
+  --water-dim: #0369a1;
+  --teal: #06b6d4;
+  --emerald: #10b981;
+  --amber: #f59e0b;
+  --rose: #f43f5e;
+  --slate: #94a3b8;
+  --muted: #334155;
+  --text: #e2e8f0;
+  --white: #f8fafc;
+  --font-display: 'Syne', sans-serif;
+  --font-body: 'Space Grotesk', sans-serif;
+  --font-mono: 'JetBrains Mono', monospace;
+}
+
+html { scroll-behavior: smooth; }
+
+body {
+  background: var(--ink);
+  color: var(--text);
+  font-family: var(--font-body);
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+.bg-canvas {
+  position: fixed; inset: 0; z-index: 0; pointer-events: none; overflow: hidden;
+}
+.bg-blob {
+  position: absolute; border-radius: 50%; filter: blur(90px); opacity: 0.07;
+  animation: drift 18s ease-in-out infinite alternate;
+}
+.bg-blob:nth-child(1) { width:600px;height:600px;background:var(--water);top:-100px;left:-100px;animation-duration:20s; }
+.bg-blob:nth-child(2) { width:500px;height:500px;background:var(--teal);bottom:-100px;right:-50px;animation-duration:15s;animation-delay:-7s; }
+.bg-blob:nth-child(3) { width:350px;height:350px;background:var(--emerald);top:50%;left:40%;animation-duration:25s;animation-delay:-3s; }
+@keyframes drift { 0%{transform:translate(0,0) scale(1)} 100%{transform:translate(40px,30px) scale(1.1)} }
+
+.bg-grid {
+  position: fixed; inset: 0; z-index: 0; pointer-events: none;
+  background-image: linear-gradient(rgba(14,165,233,0.04) 1px, transparent 1px),
+                    linear-gradient(90deg, rgba(14,165,233,0.04) 1px, transparent 1px);
+  background-size: 48px 48px;
+}
+
+.wrap { position: relative; z-index: 1; max-width: 1200px; width: 100%; margin: 0 auto; padding: 20px 20px 48px; }
+
+.header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: clamp(12px,2vw,22px) clamp(16px,2.5vw,32px); margin-bottom: 24px;
+  background: linear-gradient(135deg, rgba(11,17,32,0.88) 0%, rgba(14,22,40,0.92) 100%);
+  border: 1px solid rgba(14,165,233,0.15);
+  border-radius: 20px;
+  backdrop-filter: blur(24px);
+  box-shadow: 0 4px 40px rgba(0,0,0,0.4), inset 0 1px 0 rgba(14,165,233,0.1);
+  animation: slideDown 0.6s cubic-bezier(.16,1,.3,1) both;
+  position: relative; overflow: hidden;
+}
+.header::before {
+  content: '';
+  position: absolute; top: 0; left: 0; right: 0; height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(14,165,233,0.6), rgba(6,182,212,0.6), transparent);
+  pointer-events: none;
+}
+@keyframes slideDown { from{opacity:0;transform:translateY(-20px)} to{opacity:1;transform:translateY(0)} }
+
+.brand { display: flex; align-items: center; gap: 16px; }
+.brand-orb {
+  width: 48px; height: 48px; border-radius: 14px;
+  background: linear-gradient(135deg, var(--water), var(--teal), var(--emerald));
+  display: flex; align-items: center; justify-content: center; font-size: 22px;
+  box-shadow: 0 0 30px rgba(14,165,233,0.4);
+  animation: orbPulse 3s ease-in-out infinite;
+}
+@keyframes orbPulse {
+  0%,100%{box-shadow:0 0 30px rgba(14,165,233,0.4)}
+  50%{box-shadow:0 0 50px rgba(14,165,233,0.65)}
+}
+.brand-name {
+  font-family: var(--font-display); font-size: clamp(1rem, 2vw, 1.5rem); font-weight: 800;
+  background: linear-gradient(90deg, var(--water), var(--teal));
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+  letter-spacing: 1px;
+}
+.brand-tagline { font-family: var(--font-mono); font-size: 0.65rem; color: var(--slate); letter-spacing: 2px; margin-top: 1px; }
+
+.header-badges { display: flex; gap: 10px; flex-wrap: wrap; justify-content: flex-end; }
+.badge {
+  display: flex; align-items: center; gap: 6px;
+  padding: 6px 12px; border-radius: 20px;
+  font-family: var(--font-mono); font-size: 0.65rem; letter-spacing: 1px;
+  border: 1px solid; transition: all 0.2s;
+}
+.badge-live { border-color: rgba(16,185,129,0.4); color: var(--emerald); background: rgba(16,185,129,0.07); }
+.badge-ai { border-color: rgba(14,165,233,0.4); color: var(--water); background: rgba(14,165,233,0.07); }
+.badge-dot { width: 6px; height: 6px; border-radius: 50%; animation: blink 2s infinite; }
+.badge-dot.green { background: var(--emerald); }
+.badge-dot.blue { background: var(--water); }
+@keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.3} }
+
+.sec-label {
+  font-family: var(--font-mono); font-size: 0.65rem; letter-spacing: 3px;
+  color: var(--water); text-transform: uppercase;
+  display: flex; align-items: center; gap: 10px; margin-bottom: 18px;
+}
+.sec-label::after { content:''; flex:1; height:1px; background:linear-gradient(90deg,var(--rim),transparent); }
+
+.input-card {
+  background: linear-gradient(160deg, rgba(14,22,40,0.9) 0%, rgba(11,17,32,0.95) 100%);
+  border: 1px solid var(--rim);
+  border-radius: 18px; padding: clamp(18px,2.5vw,32px);
+  margin-bottom: 20px;
+  backdrop-filter: blur(20px);
+  box-shadow: 0 8px 48px rgba(0,0,0,0.35), inset 0 1px 0 rgba(255,255,255,0.04);
+  animation: fadeUp 0.7s cubic-bezier(.16,1,.3,1) 0.1s both;
+  position: relative; overflow: hidden;
+}
+.input-card::after {
+  content: '';
+  position: absolute; bottom: -80px; right: -80px;
+  width: 250px; height: 250px; border-radius: 50%;
+  background: radial-gradient(circle, rgba(14,165,233,0.05) 0%, transparent 70%);
+  pointer-events: none;
+}
+@keyframes fadeUp { from{opacity:0;transform:translateY(24px)} to{opacity:1;transform:translateY(0)} }
+
+.sensor-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 24px; }
+@media(max-width:600px){ .sensor-row{grid-template-columns:1fr;} }
+
+.sensor-box {
+  position: relative; border-radius: 14px; overflow: hidden;
+  background: rgba(5,8,15,0.5);
+  border: 1px solid var(--rim);
+  padding: 20px 22px 16px;
+  transition: border-color 0.3s, box-shadow 0.3s;
+  cursor: text;
+}
+.sensor-box::before {
+  content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px;
+  opacity: 0; transition: opacity 0.3s;
+}
+.sensor-box.ph::before { background: linear-gradient(90deg, var(--emerald), var(--teal)); }
+.sensor-box.tds::before { background: linear-gradient(90deg, var(--water), var(--amber)); }
+.sensor-box:focus-within { border-color: var(--rim2); box-shadow: 0 0 0 3px rgba(14,165,233,0.1); }
+.sensor-box:focus-within::before { opacity: 1; }
+
+.sensor-meta { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 10px; }
+.sensor-name { font-family: var(--font-mono); font-size: 0.65rem; letter-spacing: 2px; color: var(--slate); text-transform: uppercase; }
+.sensor-range {
+  font-family: var(--font-mono); font-size: 0.6rem; padding: 3px 8px;
+  border-radius: 6px; border: 1px solid var(--rim2); color: var(--muted);
+  background: rgba(255,255,255,0.03);
+}
+.sensor-field {
+  width: 100%; background: transparent; border: none; outline: none;
+  font-family: var(--font-display); font-size: clamp(1.5rem, 3vw, 2.4rem); font-weight: 700;
+  color: var(--white); line-height: 1; padding: 4px 0;
+}
+.sensor-field::placeholder { color: var(--muted); font-size: clamp(1.1rem, 2.5vw, 1.8rem); font-weight: 300; }
+.sensor-unit-row { display: flex; justify-content: space-between; align-items: center; margin-top: 8px; }
+.sensor-unit { font-family: var(--font-mono); font-size: 0.7rem; color: var(--muted); }
+.sensor-hint-chip {
+  font-size: 0.6rem; padding: 2px 8px; border-radius: 6px;
+  font-family: var(--font-mono);
+}
+.chip-good { background: rgba(16,185,129,0.1); color: var(--emerald); border: 1px solid rgba(16,185,129,0.2); }
+.chip-warn { background: rgba(245,158,11,0.1); color: var(--amber); border: 1px solid rgba(245,158,11,0.2); }
+.chip-info { background: rgba(14,165,233,0.1); color: var(--water); border: 1px solid rgba(14,165,233,0.2); }
+
+/* ── FIX 1: Auto-analyze toggle for MANUAL input ── */
+.manual-auto-row {
+  display: flex; align-items: center; gap: 10px;
+  padding: 10px 16px; border-radius: 12px; margin-bottom: 16px;
+  background: rgba(14,165,233,0.05); border: 1px solid rgba(14,165,233,0.15);
+  flex-wrap: wrap;
+}
+.manual-auto-label {
+  font-family: var(--font-mono); font-size: 0.62rem; color: var(--slate); letter-spacing: 1px;
+  flex: 1;
+}
+.toggle-switch {
+  position: relative; width: 44px; height: 24px; cursor: pointer;
+}
+.toggle-switch input { opacity: 0; width: 0; height: 0; }
+.toggle-track {
+  position: absolute; inset: 0; border-radius: 12px;
+  background: var(--muted); transition: background 0.3s;
+  border: 1px solid rgba(255,255,255,0.1);
+}
+.toggle-switch input:checked + .toggle-track { background: var(--emerald); box-shadow: 0 0 10px rgba(16,185,129,0.4); }
+.toggle-thumb {
+  position: absolute; top: 3px; left: 3px;
+  width: 16px; height: 16px; border-radius: 50%;
+  background: white; transition: transform 0.3s;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.4);
+}
+.toggle-switch input:checked ~ .toggle-thumb { transform: translateX(20px); }
+.auto-status-chip {
+  font-family: var(--font-mono); font-size: 0.6rem; padding: 3px 10px; border-radius: 6px;
+  transition: all 0.3s;
+}
+.auto-status-chip.off { background: rgba(51,65,85,0.5); color: var(--muted); border: 1px solid var(--rim); }
+.auto-status-chip.on { background: rgba(16,185,129,0.12); color: var(--emerald); border: 1px solid rgba(16,185,129,0.3); }
+
+.source-row { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 20px; }
+.pill {
+  padding: 8px 16px; border-radius: 30px; cursor: pointer;
+  font-size: 0.78rem; font-weight: 500;
+  border: 1px solid var(--rim);
+  background: rgba(255,255,255,0.02);
+  color: var(--slate);
+  transition: all 0.2s; user-select: none;
+}
+.pill:hover { border-color: var(--rim2); color: var(--text); }
+.pill.on { background: rgba(14,165,233,0.12); border-color: var(--water); color: var(--water); font-weight: 600; }
+
+.presets-row { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 24px; }
+.preset-btn {
+  padding: 6px 14px; border-radius: 8px; cursor: pointer;
+  font-size: 0.72rem; font-family: var(--font-mono); letter-spacing: 1px;
+  border: 1px solid var(--rim); background: transparent; color: var(--slate);
+  transition: all 0.2s;
+}
+.preset-btn:hover { border-color: var(--teal); color: var(--teal); background: rgba(6,182,212,0.06); }
+
+.btn-analyze {
+  width: 100%; padding: 20px; border: none; cursor: pointer; border-radius: 16px;
+  font-family: var(--font-display); font-size: 1rem; font-weight: 700; letter-spacing: 3px;
+  color: var(--white); position: relative; overflow: hidden;
+  background: linear-gradient(135deg, #075985, #0891b2, #0d9488);
+  box-shadow: 0 8px 40px rgba(14,165,233,0.35), inset 0 1px 0 rgba(255,255,255,0.1);
+  transition: transform 0.25s cubic-bezier(.16,1,.3,1), box-shadow 0.25s;
+}
+.btn-analyze::after {
+  content: ''; position: absolute; inset: 0;
+  background: linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.08) 50%, transparent 100%);
+  transform: translateX(-100%);
+  animation: sweep 2.5s infinite;
+}
+@keyframes sweep { to { transform: translateX(200%); } }
+.btn-analyze:hover:not(:disabled) { transform: translateY(-2px); box-shadow: 0 12px 40px rgba(14,165,233,0.45); }
+.btn-analyze:active { transform: translateY(0); }
+.btn-analyze:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+
+.gauge-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 24px; }
+@media(max-width:600px){ .gauge-row{grid-template-columns:1fr;} }
+
+.gauge-card {
+  border-radius: 18px; padding: clamp(16px,2vw,28px) clamp(14px,1.5vw,24px);
+  background: linear-gradient(160deg, rgba(14,22,40,0.9) 0%, rgba(11,17,32,0.95) 100%);
+  border: 1px solid var(--rim);
+  backdrop-filter: blur(20px);
+  box-shadow: 0 8px 40px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.04);
+  display: flex; flex-direction: column; align-items: center;
+  text-align: center; position: relative; overflow: hidden;
+  animation: fadeUp 0.5s cubic-bezier(.16,1,.3,1) both;
+}
+.gauge-card::before {
+  content: ''; position: absolute; inset: 0;
+  background: radial-gradient(ellipse at 50% 0%, rgba(14,165,233,0.06) 0%, transparent 70%);
+  pointer-events: none;
+}
+.gauge-card:nth-child(2) { animation-delay: 0.08s; }
+
+.gc-label { font-family: var(--font-mono); font-size: 0.62rem; letter-spacing: 3px; color: var(--slate); text-transform: uppercase; margin-bottom: 18px; }
+.gc-ring { position: relative; width: clamp(100px,12vw,140px); height: clamp(100px,12vw,140px); margin-bottom: 14px; }
+.gc-ring svg { width: clamp(100px,12vw,140px); height: clamp(100px,12vw,140px); transform: rotate(-90deg); }
+.gc-track { fill: none; stroke: rgba(255,255,255,0.05); stroke-width: 10; }
+.gc-arc { fill: none; stroke-width: 10; stroke-linecap: round; transition: stroke-dasharray 1.2s cubic-bezier(.16,1,.3,1); }
+.gc-center {
+  position: absolute; inset: 0; display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+}
+.gc-value { font-family: var(--font-display); font-size: clamp(1.3rem, 2.5vw, 2rem); font-weight: 800; line-height: 1; }
+.gc-unit { font-family: var(--font-mono); font-size: 0.62rem; color: var(--slate); margin-top: 3px; }
+.gc-status {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 6px 14px; border-radius: 20px; font-size: 0.72rem;
+  font-family: var(--font-mono); letter-spacing: 1px; margin-top: 4px;
+}
+.s-safe   { background: rgba(16,185,129,0.1); color: var(--emerald); border: 1px solid rgba(16,185,129,0.25); }
+.s-mild   { background: rgba(245,158,11,0.1);  color: var(--amber);   border: 1px solid rgba(245,158,11,0.25); }
+.s-poor   { background: rgba(244,63,94,0.1);   color: var(--rose);    border: 1px solid rgba(244,63,94,0.25); }
+.s-crit   { background: rgba(244,63,94,0.15);  color: #ff6188;        border: 1px solid rgba(244,63,94,0.4); }
+
+.wqi-bar-card {
+  border-radius: 18px; padding: clamp(16px,2vw,24px) clamp(18px,2.5vw,28px);
+  background: rgba(14,22,40,0.8);
+  border: 1px solid var(--rim);
+  margin-bottom: 20px;
+  animation: fadeUp 0.6s cubic-bezier(.16,1,.3,1) 0.15s both;
+}
+.wqi-row { display: flex; align-items: center; gap: 20px; flex-wrap: wrap; }
+.wqi-score-box { min-width: 90px; }
+.wqi-num { font-family: var(--font-display); font-size: clamp(2rem, 4vw, 3.5rem); font-weight: 800; line-height: 1; }
+.wqi-label { font-family: var(--font-mono); font-size: 0.62rem; letter-spacing: 2px; color: var(--slate); }
+.wqi-track-wrap { flex: 1; min-width: 200px; }
+.wqi-track-label { display: flex; justify-content: space-between; font-family: var(--font-mono); font-size: 0.6rem; color: var(--muted); margin-bottom: 8px; }
+.wqi-track {
+  height: 10px; border-radius: 10px;
+  background: linear-gradient(90deg, var(--rose) 0%, var(--amber) 40%, var(--emerald) 100%);
+  position: relative; overflow: visible;
+}
+.wqi-needle {
+  position: absolute; top: 50%; width: 16px; height: 16px; border-radius: 50%;
+  background: white; border: 3px solid var(--ink); box-shadow: 0 0 12px rgba(255,255,255,0.5);
+  transform: translate(-50%,-50%);
+  transition: left 1.2s cubic-bezier(.16,1,.3,1);
+}
+.wqi-verdict { font-size: 0.85rem; font-weight: 500; margin-top: 10px; }
+
+.ai-card {
+  border-radius: 18px;
+  background: rgba(14,22,40,0.8);
+  border: 1px solid var(--rim);
+  margin-bottom: 20px;
+  overflow: hidden;
+  animation: fadeUp 0.7s cubic-bezier(.16,1,.3,1) 0.2s both;
+}
+.ai-header {
+  display: flex; align-items: center; gap: 14px;
+  padding: clamp(14px,1.8vw,20px) clamp(16px,2.5vw,28px);
+  border-bottom: 1px solid var(--rim);
+  background: rgba(14,165,233,0.04);
+}
+.ai-orb {
+  width: 42px; height: 42px; border-radius: 12px;
+  background: linear-gradient(135deg, #0369a1, #0891b2);
+  display: flex; align-items: center; justify-content: center; font-size: 18px;
+  box-shadow: 0 0 20px rgba(14,165,233,0.35); flex-shrink: 0;
+}
+.ai-title { font-family: var(--font-display); font-size: 1rem; font-weight: 700; color: var(--white); }
+.ai-sub { font-family: var(--font-mono); font-size: 0.62rem; color: var(--slate); letter-spacing: 1px; margin-top: 2px; }
+.ai-dots { display: flex; gap: 4px; margin-left: auto; }
+.ai-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--water); animation: bounce 1.2s infinite; }
+.ai-dot:nth-child(2){animation-delay:.15s} .ai-dot:nth-child(3){animation-delay:.3s}
+@keyframes bounce { 0%,80%,100%{transform:translateY(0);opacity:.4} 40%{transform:translateY(-6px);opacity:1} }
+
+.ai-body { padding: clamp(16px,2.5vw,28px); }
+
+.out-block { margin-bottom: 22px; }
+.out-block:last-child { margin-bottom: 0; }
+.out-title {
+  font-family: var(--font-mono); font-size: 0.65rem; letter-spacing: 3px;
+  color: var(--water); text-transform: uppercase;
+  display: flex; align-items: center; gap: 10px;
+  margin-bottom: 14px; padding-bottom: 10px;
+  border-bottom: 1px solid rgba(255,255,255,0.05);
+}
+.out-title .ot-icon { font-size: 1rem; }
+.assessment-text { font-size: 0.92rem; line-height: 1.85; color: var(--text); }
+.assessment-text strong { color: var(--white); font-weight: 600; }
+.assessment-text .hl-good { color: var(--emerald); font-weight: 600; font-family: var(--font-mono); }
+.assessment-text .hl-warn { color: var(--amber); font-weight: 600; font-family: var(--font-mono); }
+.assessment-text .hl-bad  { color: var(--rose);  font-weight: 600; font-family: var(--font-mono); }
+
+.step-list { display: flex; flex-direction: column; gap: 10px; }
+.step {
+  display: flex; gap: 14px; align-items: flex-start;
+  padding: 11px 14px; border-radius: 10px;
+  background: rgba(5,8,15,0.4);
+  border: 1px solid rgba(255,255,255,0.04);
+  transition: border-color 0.2s, background 0.2s;
+}
+.step:hover { border-color: var(--rim2); background: rgba(14,165,233,0.04); }
+.step-badge {
+  min-width: 32px; height: 32px; border-radius: 9px;
+  display: flex; align-items: center; justify-content: center;
+  font-family: var(--font-display); font-size: 0.75rem; font-weight: 800;
+  flex-shrink: 0;
+}
+.sb1 { background: rgba(244,63,94,0.15); color: var(--rose); border: 1px solid rgba(244,63,94,0.3); }
+.sb2 { background: rgba(251,146,60,0.15); color: #fb923c; border: 1px solid rgba(251,146,60,0.3); }
+.sb3 { background: rgba(245,158,11,0.15); color: var(--amber); border: 1px solid rgba(245,158,11,0.3); }
+.sb4 { background: rgba(14,165,233,0.15); color: var(--water); border: 1px solid rgba(14,165,233,0.3); }
+.sb5 { background: rgba(16,185,129,0.15); color: var(--emerald); border: 1px solid rgba(16,185,129,0.3); }
+.sb6 { background: rgba(139,92,246,0.15); color: #a78bfa; border: 1px solid rgba(139,92,246,0.3); }
+.sb7 { background: rgba(6,182,212,0.15); color: var(--teal); border: 1px solid rgba(6,182,212,0.3); }
+.step-name { font-weight: 600; font-size: 0.88rem; color: var(--white); margin-bottom: 4px; display: flex; align-items: center; gap: 8px; flex-wrap:wrap; }
+.step-tag {
+  font-size: 0.58rem; padding: 2px 7px; border-radius: 5px;
+  font-family: var(--font-mono); letter-spacing: 1px; font-weight: 400;
+}
+.t-chem { background: rgba(244,63,94,0.1); color: #fb7185; border:1px solid rgba(244,63,94,0.2); }
+.t-phys { background: rgba(14,165,233,0.1); color: var(--water); border:1px solid rgba(14,165,233,0.2); }
+.t-bio  { background: rgba(16,185,129,0.1); color: var(--emerald); border:1px solid rgba(16,185,129,0.2); }
+.t-elec { background: rgba(139,92,246,0.1); color: #a78bfa; border:1px solid rgba(139,92,246,0.2); }
+.step-desc { font-size: 0.8rem; color: var(--slate); line-height: 1.65; }
+
+.uc-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px,1fr)); gap: 8px; }
+.uc-tile {
+  padding: 16px; border-radius: 14px;
+  background: rgba(5,8,15,0.5);
+  border: 1px solid var(--rim);
+  display: flex; align-items: flex-start; gap: 12px;
+  transition: all 0.2s;
+}
+.uc-tile:hover { border-color: var(--rim2); background: rgba(16,185,129,0.04); transform: translateY(-2px); }
+.uc-emoji { font-size: 1.6rem; line-height: 1; }
+.uc-text strong { font-size: 0.82rem; color: var(--white); display: block; margin-bottom: 2px; }
+.uc-text span { font-size: 0.72rem; color: var(--slate); line-height: 1.4; }
+
+.tbl-wrap { overflow-x: auto; border-radius: 12px; border: 1px solid var(--rim); }
+table { width: 100%; border-collapse: collapse; }
+thead tr { background: rgba(14,165,233,0.06); }
+th { padding: 12px 16px; text-align: left; font-family: var(--font-mono); font-size: 0.6rem; letter-spacing: 2px; color: var(--water); text-transform: uppercase; border-bottom: 1px solid var(--rim); white-space:nowrap; }
+td { padding: 12px 16px; border-bottom: 1px solid rgba(255,255,255,0.03); font-size: 0.82rem; }
+tr:last-child td { border-bottom: none; }
+tr:hover td { background: rgba(14,165,233,0.025); }
+.tv-good { color: var(--emerald); font-family: var(--font-mono); font-weight: 600; }
+.tv-warn { color: var(--amber); font-family: var(--font-mono); font-weight: 600; }
+.tv-bad  { color: var(--rose);  font-family: var(--font-mono); font-weight: 600; }
+
+.insight {
+  padding: 14px 18px; border-radius: 10px;
+  background: rgba(5,8,15,0.4);
+  border: 1px solid var(--rim);
+  border-left: 3px solid var(--water);
+  font-size: 0.82rem; line-height: 1.75; color: var(--slate);
+}
+.insight strong { color: var(--text); }
+
+.alert {
+  display: flex; align-items: flex-start; gap: 12px;
+  padding: 14px 18px; border-radius: 12px; margin-bottom: 20px; font-size: 0.83rem;
+  line-height: 1.6; animation: fadeUp 0.4s ease-out;
+}
+.alert-icon { font-size: 1.2rem; flex-shrink:0; margin-top:1px; }
+.a-warn { background: rgba(245,158,11,0.08); border: 1px solid rgba(245,158,11,0.3); color: #fcd34d; }
+.a-good { background: rgba(16,185,129,0.08); border: 1px solid rgba(16,185,129,0.3); color: #6ee7b7; }
+.a-bad  { background: rgba(244,63,94,0.08);  border: 1px solid rgba(244,63,94,0.3);  color: #fda4af; }
+
+/* ══ VERDICT CARD ══ */
+.verdict-card {
+  border-radius: 18px; padding: clamp(16px,2.5vw,28px);
+  margin-bottom: 24px;
+  position: relative; overflow: hidden;
+  animation: fadeUp 0.5s cubic-bezier(.16,1,.3,1) both;
+  border: 1px solid var(--rim);
+}
+.verdict-card.vc-safe   { background: linear-gradient(135deg, rgba(16,185,129,0.08), rgba(14,22,40,0.95)); border-color: rgba(16,185,129,0.3); }
+.verdict-card.vc-warn   { background: linear-gradient(135deg, rgba(245,158,11,0.08), rgba(14,22,40,0.95)); border-color: rgba(245,158,11,0.3); }
+.verdict-card.vc-danger { background: linear-gradient(135deg, rgba(244,63,94,0.1), rgba(14,22,40,0.95)); border-color: rgba(244,63,94,0.35); }
+.verdict-top { display: flex; align-items: center; gap: 20px; flex-wrap: wrap; margin-bottom: 20px; }
+.verdict-icon { font-size: 3rem; line-height: 1; }
+.verdict-headline { font-family: var(--font-display); font-size: 1.5rem; font-weight: 800; line-height: 1.2; margin-bottom: 6px; }
+.verdict-sub { font-size: 0.82rem; color: var(--slate); }
+.verdict-meters { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+@media(max-width:500px){ .verdict-meters { grid-template-columns: 1fr; } }
+.vm-item { background: rgba(0,0,0,0.25); border-radius: 10px; padding: 12px 14px; }
+.vm-label { font-family: var(--font-mono); font-size: 0.6rem; letter-spacing: 2px; color: var(--muted); text-transform: uppercase; margin-bottom: 8px; display: flex; justify-content: space-between; }
+.vm-bar-track { height: 6px; border-radius: 6px; background: rgba(255,255,255,0.07); overflow: hidden; }
+.vm-bar-fill { height: 100%; border-radius: 6px; transition: width 1.2s cubic-bezier(.16,1,.3,1); }
+.vm-val { font-family: var(--font-display); font-size: 0.85rem; font-weight: 700; margin-top: 6px; }
+
+/* ══ FIX 2: COST CALCULATOR — ACCURATE ══ */
+.cost-card {
+  border-radius: 18px; padding: clamp(16px,2.5vw,28px);
+  background: linear-gradient(160deg, rgba(14,22,40,0.9), rgba(11,17,32,0.95));
+  border: 1px solid var(--rim);
+  margin-bottom: 20px;
+  animation: fadeUp 0.5s cubic-bezier(.16,1,.3,1) 0.1s both;
+}
+.cost-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px,1fr)); gap: 10px; margin-bottom: 16px; }
+.cost-tile {
+  background: rgba(5,8,15,0.5); border: 1px solid var(--rim); border-radius: 14px;
+  padding: 16px; text-align: center; transition: all 0.2s;
+}
+.cost-tile:hover { border-color: var(--rim2); background: rgba(14,165,233,0.04); }
+.cost-tile-icon { font-size: 1.6rem; margin-bottom: 8px; }
+.cost-tile-val { font-family: var(--font-display); font-size: 1.3rem; font-weight: 800; color: var(--water); line-height: 1; }
+.cost-tile-label { font-family: var(--font-mono); font-size: 0.58rem; color: var(--muted); letter-spacing: 1px; margin-top: 4px; text-transform: uppercase; }
+.cost-vol-row { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
+.cost-vol-input {
+  flex: 1; min-width: 120px;
+  background: rgba(5,8,15,0.5); border: 1px solid var(--rim); border-radius: 10px;
+  padding: 10px 14px; color: var(--white); outline: none;
+  font-family: var(--font-display); font-size: 1.2rem; font-weight: 700;
+  transition: border-color 0.2s;
+}
+.cost-vol-input:focus { border-color: var(--water); }
+.cost-calc-btn {
+  padding: 10px 22px; border-radius: 10px; border: none; cursor: pointer;
+  background: linear-gradient(135deg, var(--water-dim), var(--teal));
+  color: white; font-family: var(--font-mono); font-size: 0.72rem; letter-spacing: 2px;
+  font-weight: 600; transition: all 0.2s;
+}
+.cost-calc-btn:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(14,165,233,0.3); }
+.cost-result { margin-top: 16px; padding: 14px; border-radius: 12px; background: rgba(14,165,233,0.06); border: 1px solid rgba(14,165,233,0.15); font-size: 0.85rem; line-height: 1.8; display: none; }
+.cost-result.on { display: block; }
+.cost-breakdown { margin-top: 10px; }
+.cost-breakdown-row {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 6px 10px; border-radius: 7px; margin-bottom: 4px;
+  background: rgba(5,8,15,0.4); font-size: 0.78rem;
+}
+.cost-breakdown-row .cb-name { color: var(--slate); font-family: var(--font-mono); font-size: 0.7rem; }
+.cost-breakdown-row .cb-val { color: var(--water); font-family: var(--font-mono); font-weight: 600; font-size: 0.72rem; }
+.cost-total-row {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 10px 14px; border-radius: 10px; margin-top: 8px;
+  background: rgba(14,165,233,0.1); border: 1px solid rgba(14,165,233,0.2);
+}
+.cost-note { font-family: var(--font-mono); font-size: 0.6rem; color: var(--muted); margin-top: 10px; line-height: 1.6; }
+
+/* Scan History */
+.history-card {
+  border-radius: 18px; padding: clamp(16px,2.5vw,28px);
+  background: linear-gradient(160deg, rgba(14,22,40,0.9), rgba(11,17,32,0.95));
+  border: 1px solid var(--rim);
+  margin-bottom: 20px;
+}
+.history-empty {
+  text-align: center; padding: 32px;
+  font-family: var(--font-mono); font-size: 0.7rem; color: var(--muted);
+  letter-spacing: 2px;
+}
+.history-list { display: flex; flex-direction: column; gap: 8px; max-height: 320px; overflow-y: auto; }
+.history-item {
+  display: flex; align-items: center; gap: 14px;
+  padding: 12px 16px; border-radius: 12px;
+  background: rgba(5,8,15,0.4); border: 1px solid rgba(255,255,255,0.04);
+  cursor: pointer; transition: all 0.2s;
+}
+.history-item:hover { border-color: var(--rim2); background: rgba(14,165,233,0.04); }
+.hi-num { font-family: var(--font-mono); font-size: 0.6rem; color: var(--muted); min-width: 24px; }
+.hi-source { font-size: 0.82rem; color: var(--text); flex: 1; font-weight: 500; }
+.hi-vals { display: flex; gap: 8px; }
+.hi-val {
+  font-family: var(--font-mono); font-size: 0.65rem;
+  padding: 3px 8px; border-radius: 6px;
+}
+.hi-ph-good  { background: rgba(16,185,129,0.1); color: var(--emerald); }
+.hi-ph-warn  { background: rgba(245,158,11,0.1);  color: var(--amber); }
+.hi-ph-bad   { background: rgba(244,63,94,0.1);   color: var(--rose); }
+.hi-tds-good { background: rgba(14,165,233,0.1);  color: var(--water); }
+.hi-tds-warn { background: rgba(245,158,11,0.1);  color: var(--amber); }
+.hi-tds-bad  { background: rgba(244,63,94,0.1);   color: var(--rose); }
+.hi-time { font-family: var(--font-mono); font-size: 0.58rem; color: var(--muted); }
+.history-actions { display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; flex-wrap: wrap; gap: 8px; }
+.hist-clear-btn {
+  padding: 5px 12px; border-radius: 7px; border: 1px solid var(--rim);
+  background: transparent; color: var(--muted); font-family: var(--font-mono);
+  font-size: 0.6rem; letter-spacing: 1px; cursor: pointer; transition: all 0.2s;
+}
+.hist-clear-btn:hover { border-color: var(--rose); color: var(--rose); }
+.hist-count { font-family: var(--font-mono); font-size: 0.62rem; color: var(--muted); letter-spacing: 1px; }
+
+/* scale selector */
+.scale-section { margin-bottom: 24px; }
+.scale-cards { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+@media(max-width:580px){ .scale-cards { grid-template-columns: 1fr; } }
+
+.scale-card {
+  position: relative; border-radius: 16px; padding: 18px 20px;
+  background: rgba(5,8,15,0.5);
+  border: 1px solid var(--rim);
+  cursor: pointer; transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  overflow: hidden;
+}
+.scale-card::before {
+  content: ''; position: absolute; inset: 0; opacity: 0;
+  transition: opacity 0.25s;
+}
+.scale-card.large::before { background: linear-gradient(135deg, rgba(14,165,233,0.07), rgba(6,182,212,0.04)); }
+.scale-card.small::before { background: linear-gradient(135deg, rgba(16,185,129,0.07), rgba(52,211,153,0.04)); }
+.scale-card:hover { border-color: var(--rim2); }
+.scale-card:hover::before { opacity: 1; }
+.scale-card.on.large { border-color: var(--water); box-shadow: 0 0 0 1px rgba(14,165,233,0.15), 0 8px 30px rgba(14,165,233,0.12); }
+.scale-card.on.small { border-color: var(--emerald); box-shadow: 0 0 0 1px rgba(16,185,129,0.15), 0 8px 30px rgba(16,185,129,0.12); }
+.scale-card.on::before { opacity: 1; }
+.sc-top { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 10px; }
+.sc-icon { font-size: 1.8rem; line-height: 1; }
+.sc-radio {
+  width: 18px; height: 18px; border-radius: 50%;
+  border: 2px solid var(--rim2); background: transparent;
+  transition: all 0.2s; flex-shrink: 0; margin-top: 2px; position: relative;
+}
+.scale-card.on.large .sc-radio { border-color: var(--water); background: var(--water); box-shadow: 0 0 8px rgba(14,165,233,0.5); }
+.scale-card.on.small .sc-radio { border-color: var(--emerald); background: var(--emerald); box-shadow: 0 0 8px rgba(16,185,129,0.5); }
+.sc-radio::after {
+  content: ''; position: absolute; top: 50%; left: 50%;
+  transform: translate(-50%,-50%) scale(0);
+  width: 6px; height: 6px; border-radius: 50%; background: var(--ink);
+  transition: transform 0.15s;
+}
+.scale-card.on .sc-radio::after { transform: translate(-50%,-50%) scale(1); }
+.sc-title { font-family: var(--font-display); font-size: 0.95rem; font-weight: 700; color: var(--white); margin-bottom: 4px; }
+.sc-sub { font-family: var(--font-mono); font-size: 0.62rem; color: var(--slate); letter-spacing: 1px; margin-bottom: 10px; }
+.sc-tags { display: flex; gap: 6px; flex-wrap: wrap; }
+.sc-tag { font-family: var(--font-mono); font-size: 0.58rem; padding: 2px 8px; border-radius: 5px; letter-spacing: 1px; }
+.sc-tag.blue { background: rgba(14,165,233,0.1); color: var(--water); border: 1px solid rgba(14,165,233,0.2); }
+.sc-tag.green { background: rgba(16,185,129,0.1); color: var(--emerald); border: 1px solid rgba(16,185,129,0.2); }
+.sc-tag.amber { background: rgba(245,158,11,0.1); color: var(--amber); border: 1px solid rgba(245,158,11,0.2); }
+
+/* ESP32 live feed */
+.live-bar {
+  display: flex; align-items: center; gap: 12px;
+  padding: 14px 20px; border-radius: 14px; margin-bottom: 20px;
+  background: linear-gradient(135deg, rgba(5,8,15,0.7), rgba(14,22,40,0.8));
+  border: 1px solid var(--rim); flex-wrap: wrap;
+  transition: border-color 0.4s, box-shadow 0.4s;
+}
+.live-bar.connected { border-color: rgba(16,185,129,0.5); box-shadow: 0 0 20px rgba(16,185,129,0.08); }
+.live-bar.error { border-color: rgba(244,63,94,0.4); box-shadow: 0 0 20px rgba(244,63,94,0.06); }
+.live-indicator { display: flex; align-items: center; gap: 8px; font-family: var(--font-mono); font-size: 0.68rem; letter-spacing: 1px; }
+.live-pulse { width: 9px; height: 9px; border-radius: 50%; background: var(--muted); flex-shrink: 0; transition: background 0.3s, box-shadow 0.3s; }
+.live-pulse.on { background: var(--emerald); box-shadow: 0 0 10px var(--emerald); animation: livePulse 1.5s infinite; }
+.live-pulse.err { background: var(--rose); box-shadow: 0 0 8px var(--rose); }
+@keyframes livePulse { 0%,100%{transform:scale(1);opacity:1} 50%{transform:scale(1.3);opacity:0.7} }
+.live-status { color: var(--slate); }
+.live-status.on { color: var(--emerald); }
+.live-status.err { color: var(--rose); }
+.live-readings { display: flex; gap: 10px; flex-wrap: wrap; }
+.live-val-chip {
+  display: flex; align-items: center; gap: 6px;
+  padding: 5px 12px; border-radius: 8px;
+  font-family: var(--font-mono); font-size: 0.7rem;
+  border: 1px solid var(--rim); background: rgba(0,0,0,0.3); transition: all 0.3s;
+}
+.live-val-chip.updated { animation: chipFlash 0.5s ease; }
+@keyframes chipFlash { 0%{background:rgba(16,185,129,0.2);border-color:var(--emerald)} 100%{background:rgba(0,0,0,0.3);border-color:var(--rim)} }
+.lvc-label { color: var(--muted); font-size: 0.6rem; letter-spacing: 2px; }
+.lvc-val { color: var(--white); font-weight: 600; font-size: 0.8rem; }
+.live-controls { display: flex; gap: 8px; margin-left: auto; flex-wrap: wrap; }
+.btn-connect {
+  padding: 7px 16px; border-radius: 9px; border: none; cursor: pointer;
+  font-family: var(--font-mono); font-size: 0.65rem; letter-spacing: 1.5px;
+  font-weight: 600; transition: all 0.2s;
+  background: linear-gradient(135deg, var(--water-dim), var(--teal));
+  color: white; box-shadow: 0 4px 14px rgba(14,165,233,0.25);
+}
+.btn-connect:hover { transform: translateY(-1px); box-shadow: 0 6px 18px rgba(14,165,233,0.4); }
+.btn-connect.disconnect { background: linear-gradient(135deg, #7f1d1d, #991b1b); box-shadow: 0 4px 14px rgba(244,63,94,0.2); }
+.btn-auto-analyze {
+  padding: 7px 14px; border-radius: 9px;
+  font-family: var(--font-mono); font-size: 0.62rem; letter-spacing: 1px;
+  border: 1px solid var(--rim); background: transparent; color: var(--slate);
+  cursor: pointer; transition: all 0.2s; display: flex; align-items: center; gap: 5px;
+}
+.btn-auto-analyze.on { border-color: var(--emerald); color: var(--emerald); background: rgba(16,185,129,0.08); }
+.live-ip-row { display: flex; align-items: center; gap: 8px; width: 100%; margin-top: 8px; }
+.live-ip-input {
+  flex: 1; background: rgba(5,8,15,0.6); border: 1px solid var(--rim);
+  border-radius: 8px; padding: 7px 12px; color: var(--white);
+  font-family: var(--font-mono); font-size: 0.72rem; outline: none; transition: border-color 0.2s;
+}
+.live-ip-input:focus { border-color: var(--water); }
+.live-ip-label { font-family: var(--font-mono); font-size: 0.6rem; color: var(--muted); letter-spacing: 1px; white-space: nowrap; }
+.live-log { width: 100%; margin-top: 10px; max-height: 80px; overflow-y: auto; font-family: var(--font-mono); font-size: 0.6rem; color: var(--muted); line-height: 1.6; display: none; }
+.live-log.on { display: block; }
+.log-line { padding: 1px 0; }
+.log-line.ok { color: var(--emerald); }
+.log-line.err { color: var(--rose); }
+.log-line.info { color: var(--water); }
+.last-update { font-family: var(--font-mono); font-size: 0.58rem; color: var(--muted); margin-left: auto; letter-spacing: 1px; }
+
+#results { display: none; }
+#results.on { display: block; }
+
+::-webkit-scrollbar { width: 5px; height: 5px; }
+::-webkit-scrollbar-track { background: var(--surface); }
+::-webkit-scrollbar-thumb { background: var(--rim2); border-radius: 4px; }
+
+.footer-wrap { margin-top: 60px; position: relative; overflow: hidden; }
+.footer-glow { position: absolute; top: 0; left: 50%; transform: translateX(-50%); width: 600px; height: 1px; background: linear-gradient(90deg, transparent, var(--water), var(--teal), transparent); }
+.footer-inner { display: flex; flex-direction: column; align-items: center; padding: 48px 24px 40px; gap: 28px; }
+.footer-logo { display: flex; flex-direction: column; align-items: center; gap: 10px; }
+.footer-orb { width: 52px; height: 52px; border-radius: 16px; background: linear-gradient(135deg, rgba(14,165,233,0.15), rgba(6,182,212,0.1)); border: 1px solid rgba(14,165,233,0.25); display: flex; align-items: center; justify-content: center; font-size: 22px; }
+.footer-brand-name { font-family: var(--font-display); font-size: 1.1rem; font-weight: 800; background: linear-gradient(90deg, var(--water), var(--teal)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; letter-spacing: 2px; }
+.footer-tagline { font-family: var(--font-mono); font-size: 0.6rem; color: var(--muted); letter-spacing: 3px; text-transform: uppercase; }
+.footer-stats { display: flex; gap: 0; border: 1px solid var(--rim); border-radius: 14px; overflow: hidden; }
+.fstat { padding: 14px 24px; display: flex; flex-direction: column; align-items: center; gap: 4px; border-right: 1px solid var(--rim); background: rgba(14,22,40,0.6); transition: background 0.2s; }
+.fstat:last-child { border-right: none; }
+.fstat:hover { background: rgba(14,165,233,0.06); }
+.fstat-val { font-family: var(--font-display); font-size: 1rem; font-weight: 700; color: var(--water); }
+.fstat-lbl { font-family: var(--font-mono); font-size: 0.56rem; color: var(--muted); letter-spacing: 2px; text-transform: uppercase; }
+.footer-tech { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; }
+.ftech { display: flex; align-items: center; gap: 6px; padding: 6px 13px; border-radius: 20px; background: rgba(5,8,15,0.6); border: 1px solid var(--rim); font-family: var(--font-mono); font-size: 0.6rem; color: var(--slate); letter-spacing: 1px; transition: all 0.2s; }
+.ftech:hover { border-color: var(--rim2); color: var(--text); background: rgba(14,165,233,0.05); }
+.ftech-dot { width: 5px; height: 5px; border-radius: 50%; }
+.ftech-dot.c1 { background: var(--water); }
+.ftech-dot.c2 { background: var(--emerald); }
+.ftech-dot.c3 { background: var(--amber); }
+.ftech-dot.c4 { background: #a78bfa; }
+.footer-divider { width: 100%; height: 1px; background: linear-gradient(90deg, transparent, var(--rim), transparent); }
+.footer-bottom { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; font-family: var(--font-mono); font-size: 0.58rem; color: var(--muted); letter-spacing: 1px; width: 100%; padding: 0 4px; }
+.footer-copy { display: flex; align-items: center; gap: 8px; }
+.footer-copy .sep { color: var(--rim2); }
+.footer-pulse { display: flex; align-items: center; gap: 6px; color: var(--teal); }
+.fp-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--teal); box-shadow: 0 0 6px var(--teal); animation: blink 2s infinite; }
+
+@media (max-width: 768px) {
+  .sensor-row { grid-template-columns: 1fr 1fr; gap: 10px; }
+  .gauge-row { grid-template-columns: 1fr 1fr; gap: 10px; }
+  .scale-cards { grid-template-columns: 1fr 1fr; }
+  .wqi-row { flex-direction: column; gap: 12px; }
+}
+@media (max-width: 600px) {
+  .wrap { padding: 12px 12px 32px; }
+  .sensor-row { grid-template-columns: 1fr; gap: 10px; }
+  .gauge-row { grid-template-columns: 1fr; }
+  .scale-cards { grid-template-columns: 1fr; }
+  .verdict-meters { grid-template-columns: 1fr 1fr; }
+  .uc-grid { grid-template-columns: 1fr 1fr; }
+}
+</style>
+</head>
+<body>
+
+<div class="bg-canvas">
+  <div class="bg-blob"></div><div class="bg-blob"></div><div class="bg-blob"></div>
+  <canvas id="particles" style="position:absolute;inset:0;width:100%;height:100%;opacity:0.35;"></canvas>
+</div>
+<div class="bg-grid"></div>
+
+<div class="wrap">
+
+  <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px;padding:0 4px;opacity:0.55;animation:fadeUp 0.8s 0.3s both;">
+    <div style="height:1px;flex:1;background:linear-gradient(90deg,transparent,rgba(14,165,233,0.4));"></div>
+    <span style="font-family:var(--font-mono);font-size:0.58rem;letter-spacing:4px;color:var(--water);text-transform:uppercase;">Real-Time Water Intelligence · pH + TDS · AI-Powered Purification</span>
+    <div style="height:1px;flex:1;background:linear-gradient(90deg,rgba(14,165,233,0.4),transparent);"></div>
+  </div>
+
+  <header class="header">
+    <div class="brand">
+      <div class="brand-orb">💧</div>
+      <div>
+        <div class="brand-name">AquaSense AI</div>
+        <div class="brand-tagline">WATER QUALITY INTELLIGENCE — pH + TDS ANALYSIS</div>
+      </div>
+    </div>
+    <div class="header-badges">
+      <div class="badge badge-live"><div class="badge-dot green"></div>SENSOR LIVE</div>
+      <div class="badge badge-ai"><div class="badge-dot blue"></div>AI READY</div>
+    </div>
+  </header>
+
+  <div class="input-card">
+    <!-- ESP32 LIVE BAR -->
+    <div class="live-bar" id="live-bar">
+      <div class="live-indicator">
+        <div class="live-pulse" id="live-pulse"></div>
+        <span class="live-status" id="live-status">ESP32 NOT CONNECTED</span>
+      </div>
+      <div class="live-readings" id="live-readings" style="display:none;">
+        <div class="live-val-chip" id="chip-ph"><span class="lvc-label">PH</span><span class="lvc-val" id="live-ph-val">—</span></div>
+        <div class="live-val-chip" id="chip-tds"><span class="lvc-label">TDS</span><span class="lvc-val" id="live-tds-val">— ppm</span></div>
+        <div class="live-val-chip"><span class="lvc-label">UPDATED</span><span class="lvc-val" id="live-time-val">—</span></div>
+      </div>
+      <div class="last-update" id="last-update"></div>
+      <div class="live-controls">
+        <button class="btn-auto-analyze" id="btn-auto" onclick="toggleAutoAnalyze()" title="Auto-run AI analysis on every new ESP32 reading">⚡ ESP32 AUTO: <span id="auto-label">OFF</span></button>
+        <button class="btn-auto-analyze" id="btn-lock" onclick="toggleLock()" style="border-color:rgba(245,158,11,0.5);color:#f59e0b;background:rgba(245,158,11,0.06);">🔓 LOCK VALUES</button>
+        <button class="btn-connect" id="btn-connect" onclick="toggleConnect()">CONNECT ESP32</button>
+      </div>
+      <div class="live-ip-row">
+        <span class="live-ip-label">BRIDGE URL:</span>
+        <input class="live-ip-input" id="bridge-url" value="http://localhost:5050" placeholder="http://localhost:5050">
+        <span class="live-ip-label" style="color:var(--dim);font-size:0.55rem;">Run esp32_bridge.py on your laptop first</span>
+      </div>
+      <div class="live-log" id="live-log"></div>
+    </div>
+
+    <div class="sec-label">Sensor Readings</div>
+
+    <div class="sensor-row">
+      <div class="sensor-box ph" onclick="this.querySelector('input').focus()">
+        <div class="sensor-meta">
+          <div class="sensor-name">pH Value</div>
+          <div class="sensor-range">Scale 0 – 14</div>
+        </div>
+        <input class="sensor-field" id="ph" type="number" step="0.01" min="0" max="14" placeholder="7.0" oninput="onManualInput()">
+        <div class="sensor-unit-row">
+          <div class="sensor-unit">pH Units</div>
+          <div class="sensor-hint-chip chip-good">Safe: 6.5 – 8.5</div>
+        </div>
+      </div>
+      <div class="sensor-box tds" onclick="this.querySelector('input').focus()">
+        <div class="sensor-meta">
+          <div class="sensor-name">TDS Value</div>
+          <div class="sensor-range">Parts Per Million</div>
+        </div>
+        <input class="sensor-field" id="tds" type="number" step="1" min="0" placeholder="350" oninput="onManualInput()">
+        <div class="sensor-unit-row">
+          <div class="sensor-unit">ppm</div>
+          <div class="sensor-hint-chip chip-warn">WHO limit: 500 ppm</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- FIX 1: Manual Auto-Analyze Toggle -->
+    <div class="manual-auto-row">
+      <span class="manual-auto-label">⚡ AUTO-ANALYZE on manual input — triggers analysis automatically when you type both pH and TDS values</span>
+      <label class="toggle-switch">
+        <input type="checkbox" id="manual-auto-toggle" onchange="toggleManualAuto(this.checked)">
+        <div class="toggle-track"></div>
+        <div class="toggle-thumb"></div>
+      </label>
+      <span class="auto-status-chip off" id="manual-auto-chip">OFF</span>
+    </div>
+
+    <div class="sec-label" style="margin-bottom:12px;">Water Source</div>
+    <div class="source-row" id="sources">
+      <div class="pill on" onclick="pick(this,'Pond Water')">🌿 Pond</div>
+      <div class="pill" onclick="pick(this,'River Water')">🏞️ River</div>
+      <div class="pill" onclick="pick(this,'Borewell / Groundwater')">⛏️ Borewell</div>
+      <div class="pill" onclick="pick(this,'Tap / Municipal Water')">🚿 Tap</div>
+      <div class="pill" onclick="pick(this,'Lake Water')">🏔️ Lake</div>
+      <div class="pill" onclick="pick(this,'Industrial Runoff')">🏭 Industrial</div>
+      <div class="pill" onclick="pick(this,'Rainwater / Harvested Water')">🌧️ Rain</div>
+    </div>
+
+    <div id="manual-hint" style="display:none;align-items:center;gap:10px;padding:10px 14px;border-radius:10px;background:rgba(16,185,129,0.07);border:1px solid rgba(16,185,129,0.2);margin-bottom:16px;">
+      <span style="font-size:1.1rem">📡</span>
+      <span style="font-family:var(--font-mono);font-size:0.68rem;color:var(--emerald);letter-spacing:1px;">VALUES LOCKED — LIVE FROM ESP32 · Manual input disabled while streaming</span>
+    </div>
+
+    <div class="sec-label" style="margin-bottom:10px;">Quick Presets</div>
+    <div class="presets-row">
+      <button class="preset-btn" onclick="preset(7.8,680,'Pond Water','🌿 Pond')">🌿 Pond Sample</button>
+      <button class="preset-btn" onclick="preset(6.9,310,'River Water','🏞️ River')">🏞️ River Sample</button>
+      <button class="preset-btn" onclick="preset(8.3,940,'Borewell / Groundwater','⛏️ Borewell')">⛏️ Borewell Sample</button>
+      <button class="preset-btn" onclick="preset(7.1,195,'Tap / Municipal Water','🚿 Tap')">🚿 Tap Sample</button>
+      <button class="preset-btn" onclick="preset(4.2,1850,'Industrial Runoff','🏭 Industrial')">🏭 Industrial Sample</button>
+    </div>
+
+    <div class="scale-section">
+      <div class="sec-label" style="margin-bottom:12px;">Analysis Scale — How much water are you treating?</div>
+      <div class="scale-cards">
+        <div class="scale-card large on" id="sc-large" onclick="pickScale('large')">
+          <div class="sc-top"><div class="sc-icon">🏭</div><div class="sc-radio"></div></div>
+          <div class="sc-title">Large Scale</div>
+          <div class="sc-sub">1,000 L and above</div>
+          <div class="sc-tags">
+            <span class="sc-tag blue">Agricultural Fields</span>
+            <span class="sc-tag blue">Water Treatment Plants</span>
+            <span class="sc-tag amber">Industrial Use</span>
+          </div>
+        </div>
+        <div class="scale-card small" id="sc-small" onclick="pickScale('small')">
+          <div class="sc-top"><div class="sc-icon">🚰</div><div class="sc-radio"></div></div>
+          <div class="sc-title">Small Scale</div>
+          <div class="sc-sub">Under 1,000 L</div>
+          <div class="sc-tags">
+            <span class="sc-tag green">Household Drinking</span>
+            <span class="sc-tag green">Cooking & Food Prep</span>
+            <span class="sc-tag amber">Lab / Research</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;padding:10px 16px;border-radius:11px;background:rgba(5,8,15,0.6);border:1px solid var(--rim);">
+      <span style="font-family:var(--font-mono);font-size:0.6rem;letter-spacing:1px;color:var(--muted);white-space:nowrap;">🔑 API KEY</span>
+      <input type="password" id="apikey" placeholder="sk-ant-api03-..."
+        style="flex:1;min-width:160px;background:transparent;border:none;outline:none;color:var(--white);font-family:var(--font-mono);font-size:0.7rem;"
+        oninput="window._AQ_KEY=this.value;try{localStorage.setItem('aqk',this.value)}catch(e){};const v=this.value.startsWith('sk-ant-')&&this.value.length>20;document.getElementById('kstat').textContent=v?'✅ SET':'⚠️ CHECK';document.getElementById('kstat').style.color=v?'#10b981':'#f59e0b';">
+      <span id="kstat" style="font-family:var(--font-mono);font-size:0.58rem;color:var(--muted);white-space:nowrap;">NOT SET</span>
+    </div>
+    <button class="btn-analyze" id="abtn" onclick="go()">⚡&nbsp;&nbsp;RUN AI WATER ANALYSIS</button>
+  </div>
+
+  <!-- RESULTS -->
+  <div id="results">
+    <div id="verdict-card" class="verdict-card" style="display:none;"></div>
+    <div class="gauge-row" id="gauges"></div>
+    <div class="wqi-bar-card" id="wqicard"></div>
+
+    <!-- FIX 2: ACCURATE COST CALCULATOR -->
+    <div class="cost-card" id="costcard" style="display:none;">
+      <div class="sec-label" style="margin-bottom:18px;">💸 Treatment Cost Estimator</div>
+      <div class="cost-grid" id="cost-tiles"></div>
+      <div class="cost-vol-row">
+        <input class="cost-vol-input" id="cost-vol" type="number" placeholder="1000" value="1000" min="1">
+        <span style="font-family:var(--font-mono);font-size:0.7rem;color:var(--muted);">Litres</span>
+        <button class="cost-calc-btn" onclick="calcCost()">CALCULATE ₹</button>
+      </div>
+      <div class="cost-result" id="cost-result"></div>
+    </div>
+
+    <div class="history-card">
+      <div class="history-actions">
+        <div class="sec-label" style="margin-bottom:0;">📋 Scan History Log</div>
+        <div style="display:flex;gap:10px;align-items:center;">
+          <span class="hist-count" id="hist-count">0 scans</span>
+          <button class="hist-clear-btn" onclick="clearHistory()">Clear All</button>
+        </div>
+      </div>
+      <div id="history-list"><div class="history-empty">No scans yet — run your first analysis above ↑</div></div>
+    </div>
+
+    <div class="ai-card">
+      <div class="ai-header">
+        <div class="ai-orb">🧠</div>
+        <div>
+          <div class="ai-title">AquaSense Intelligence Engine</div>
+          <div class="ai-sub">MULTI-PARAMETER WATER CHEMISTRY ANALYSIS</div>
+        </div>
+        <div class="ai-dots" id="dots"><div class="ai-dot"></div><div class="ai-dot"></div><div class="ai-dot"></div></div>
+      </div>
+      <div class="ai-body" id="aout"></div>
+    </div>
+  </div>
+
+  <div class="footer-wrap">
+    <div class="footer-glow"></div>
+    <div class="footer-inner">
+      <div class="footer-logo">
+        <div class="footer-orb">💧</div>
+        <div class="footer-brand-name">AQUASENSE AI</div>
+        <div class="footer-tagline">Intelligent Water Quality Analysis System</div>
+      </div>
+      <div class="footer-stats">
+        <div class="fstat"><div class="fstat-val">pH</div><div class="fstat-lbl">Acidity Sensor</div></div>
+        <div class="fstat"><div class="fstat-val">TDS</div><div class="fstat-lbl">Dissolved Solids</div></div>
+        <div class="fstat"><div class="fstat-val">WQI</div><div class="fstat-lbl">Quality Index</div></div>
+        <div class="fstat"><div class="fstat-val">AI</div><div class="fstat-lbl">Purification Engine</div></div>
+      </div>
+      <div class="footer-tech">
+        <div class="ftech"><div class="ftech-dot c1"></div>Arduino Uno</div>
+        <div class="ftech"><div class="ftech-dot c2"></div>pH Electrode Sensor</div>
+        <div class="ftech"><div class="ftech-dot c1"></div>TDS Meter Module</div>
+        <div class="ftech"><div class="ftech-dot c3"></div>I²C LCD Display</div>
+        <div class="ftech"><div class="ftech-dot c4"></div>Claude AI Engine</div>
+      </div>
+      <div class="footer-divider"></div>
+      <div class="footer-bottom">
+        <div class="footer-copy"><span>AquaSense AI</span><span class="sep">·</span><span>Smart Water Intelligence</span><span class="sep">·</span><span>pH &amp; TDS Analysis</span></div>
+        <div class="footer-pulse"><div class="fp-dot"></div>SYSTEM OPERATIONAL</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ═══════════════════════════════════════════════
+// STATE
+// ═══════════════════════════════════════════════
+let source = 'Pond Water';
+let scale = 'large';
+let scanHistory = [];
+let liveInterval = null;
+let autoAnalyze = false;
+let isConnected = false;
+let lastLivePH = null;
+let lastLiveTDS = null;
+let logLines = [];
+let valuesLocked = false;
+let stableDebounceTimer = null;
+let isAnalyzing = false;
+
+// ── FIX 1: Manual auto-analyze state ──
+let manualAutoEnabled = false;
+let manualAutoTimer = null;
+const MANUAL_AUTO_DELAY = 2000; // 2 seconds after user stops typing
+
+// ═══════════════════════════════════════════════
+// FIX 1: MANUAL AUTO-ANALYZE
+// ═══════════════════════════════════════════════
+function toggleManualAuto(enabled) {
+  manualAutoEnabled = enabled;
+  const chip = document.getElementById('manual-auto-chip');
+  chip.textContent = enabled ? 'ON — analyzing in 2s after you type' : 'OFF';
+  chip.className = 'auto-status-chip ' + (enabled ? 'on' : 'off');
+}
+
+function onManualInput() {
+  if (!manualAutoEnabled || isConnected || isAnalyzing) return;
+  clearTimeout(manualAutoTimer);
+  const ph = parseFloat(document.getElementById('ph').value);
+  const tds = parseFloat(document.getElementById('tds').value);
+  if (isNaN(ph) || isNaN(tds)) return; // need both values
+  // Debounce: wait 2s after user stops typing
+  manualAutoTimer = setTimeout(() => {
+    if (!isAnalyzing) go();
+  }, MANUAL_AUTO_DELAY);
+}
+
+// ═══════════════════════════════════════════════
+// ESP32 LIVE FEED
+// ═══════════════════════════════════════════════
+function toggleConnect() { isConnected ? stopLive() : startLive(); }
+
+function startLive() {
+  const url = document.getElementById('bridge-url').value.trim();
+  if (!url) { addLog('No bridge URL set', 'err'); return; }
+  addLog('Connecting to ' + url + ' ...', 'info');
+  document.getElementById('btn-connect').textContent = 'CONNECTING...';
+  fetchLive(url, true);
+  liveInterval = setInterval(() => fetchLive(url, false), 2000);
+}
+
+function stopLive() {
+  clearInterval(liveInterval); clearTimeout(stableDebounceTimer);
+  liveInterval = null; isConnected = false; autoAnalyze = false;
+  setLiveUI(false, null, null);
+  document.getElementById('btn-connect').textContent = 'CONNECT ESP32';
+  document.getElementById('btn-connect').classList.remove('disconnect');
+  document.getElementById('btn-auto').classList.remove('on');
+  document.getElementById('auto-label').textContent = 'OFF';
+  addLog('Disconnected', 'err');
+}
+
+async function fetchLive(url, isFirst) {
+  try {
+    const res = await fetch(url + '/latest', { signal: AbortSignal.timeout(3000) });
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    const d = await res.json();
+    if (d.ph !== null && d.tds !== null) {
+      const phVal = parseFloat(parseFloat(d.ph).toFixed(2));
+      const tdsVal = Math.round(parseFloat(d.tds));
+      const phChanged = lastLivePH === null || Math.abs(phVal - lastLivePH) >= 0.05;
+      const tdsChanged = lastLiveTDS === null || Math.abs(tdsVal - lastLiveTDS) >= 5;
+      setLiveUI(true, phVal, tdsVal, d.timestamp);
+      if (phChanged) flashChip('chip-ph');
+      if (tdsChanged) flashChip('chip-tds');
+      if (!valuesLocked) {
+        document.getElementById('ph').value = phVal;
+        document.getElementById('tds').value = tdsVal;
+      }
+      if (autoAnalyze && (phChanged || tdsChanged) && !isAnalyzing) {
+        clearTimeout(stableDebounceTimer);
+        stableDebounceTimer = setTimeout(() => {
+          if (!isAnalyzing) go();
+        }, 5000);
+      }
+      if (isFirst || phChanged || tdsChanged) {
+        addLog('📡 ' + (d.timestamp||'now') + '  pH=' + phVal + '  TDS=' + tdsVal + ' ppm', 'ok');
+      }
+      lastLivePH = phVal; lastLiveTDS = tdsVal;
+      if (!isConnected) {
+        isConnected = true;
+        document.getElementById('btn-connect').textContent = 'DISCONNECT';
+        document.getElementById('btn-connect').classList.add('disconnect');
+        addLog('ESP32 bridge connected!', 'ok');
+      }
+      document.getElementById('last-update').textContent = '⟳ ' + new Date().toLocaleTimeString();
+    } else {
+      if (isFirst) addLog('Bridge running — waiting for ESP32 data...', 'info');
+      if (!isConnected) {
+        isConnected = true;
+        document.getElementById('btn-connect').textContent = 'DISCONNECT';
+        document.getElementById('btn-connect').classList.add('disconnect');
+        document.getElementById('live-readings').style.display = 'flex';
+      }
+    }
+  } catch (e) {
+    if (isFirst) {
+      addLog('Cannot reach bridge: ' + e.message, 'err');
+      document.getElementById('btn-connect').textContent = 'CONNECT ESP32';
+      clearInterval(liveInterval); isConnected = false;
+      setLiveUI(false, null, null);
+    }
+  }
+}
+
+function setLiveUI(connected, ph, tds, ts) {
+  const bar = document.getElementById('live-bar');
+  const pulse = document.getElementById('live-pulse');
+  const status = document.getElementById('live-status');
+  const reads = document.getElementById('live-readings');
+  const manualHint = document.getElementById('manual-hint');
+  if (connected && ph !== null) {
+    bar.className = 'live-bar connected'; pulse.className = 'live-pulse on';
+    status.className = 'live-status on'; status.textContent = 'ESP32 LIVE ● STREAMING';
+    reads.style.display = 'flex';
+    document.getElementById('live-ph-val').textContent = ph;
+    document.getElementById('live-tds-val').textContent = tds + ' ppm';
+    document.getElementById('live-time-val').textContent = ts || '—';
+    if (manualHint) manualHint.style.display = 'flex';
+  } else if (connected) {
+    bar.className = 'live-bar connected'; pulse.className = 'live-pulse on';
+    status.className = 'live-status on'; status.textContent = 'BRIDGE CONNECTED — waiting for ESP32...';
+    if (manualHint) manualHint.style.display = 'none';
+  } else {
+    bar.className = 'live-bar'; pulse.className = 'live-pulse';
+    status.className = 'live-status'; status.textContent = 'ESP32 NOT CONNECTED';
+    reads.style.display = 'none';
+    if (manualHint) manualHint.style.display = 'none';
+  }
+}
+
+function flashChip(id) {
+  const el = document.getElementById(id); if (!el) return;
+  el.classList.remove('updated'); void el.offsetWidth; el.classList.add('updated');
+}
+function toggleAutoAnalyze() {
+  autoAnalyze = !autoAnalyze;
+  const btn = document.getElementById('btn-auto'); const lbl = document.getElementById('auto-label');
+  btn.classList.toggle('on', autoAnalyze); lbl.textContent = autoAnalyze ? 'ON' : 'OFF';
+  addLog('ESP32 Auto-analyze ' + (autoAnalyze ? 'ENABLED' : 'DISABLED'), 'info');
+}
+function toggleLock() {
+  valuesLocked = !valuesLocked;
+  const btn = document.getElementById('btn-lock');
+  if (valuesLocked) {
+    const ph = document.getElementById('ph').value; const tds = document.getElementById('tds').value;
+    btn.innerHTML = '🔒 LOCKED: pH ' + ph + ' / ' + tds + ' ppm';
+    btn.style.cssText = 'border-color:rgba(16,185,129,0.6);color:#10b981;background:rgba(16,185,129,0.1);';
+  } else {
+    btn.innerHTML = '🔓 LOCK VALUES';
+    btn.style.cssText = 'border-color:rgba(245,158,11,0.5);color:#f59e0b;background:rgba(245,158,11,0.06);';
+  }
+}
+function addLog(msg, type='info') {
+  const el = document.getElementById('live-log'); if (!el) return;
+  el.classList.add('on');
+  const now = new Date().toLocaleTimeString('en-IN', {hour:'2-digit',minute:'2-digit',second:'2-digit'});
+  logLines.unshift({ msg, type, time: now });
+  if (logLines.length > 8) logLines.pop();
+  el.innerHTML = logLines.map(l => `<div class="log-line ${l.type}">[${l.time}] ${l.msg}</div>`).join('');
+}
+
+// ═══════════════════════════════════════════════
+// VERDICT CARD
+// ═══════════════════════════════════════════════
+function buildVerdict(ph, tds, wqi) {
+  let cls, icon, headline, sub;
+  if (wqi >= 70 && ph >= 6.5 && ph <= 8.5 && tds <= 500) {
+    cls='vc-safe'; icon='✅'; headline='SAFE TO USE'; sub='Water meets WHO & BIS standards.';
+  } else if (wqi >= 45) {
+    cls='vc-warn'; icon='⚠️'; headline='TREATMENT REQUIRED'; sub='Moderately contaminated. Multi-step purification needed.';
+  } else {
+    cls='vc-danger'; icon='🚫'; headline='UNSAFE — DO NOT USE'; sub='Heavily contaminated. Mandatory multi-stage treatment required.';
+  }
+  const phColor = ph>=6.5&&ph<=8.5?'#10b981':ph>=5.5&&ph<=9.5?'#f59e0b':'#f43f5e';
+  const tdsColor = tds<=300?'#10b981':tds<=500?'#34d399':tds<=1000?'#f59e0b':'#f43f5e';
+  const phPct = Math.min(100, ((ph<=7?ph/7:1-(ph-7)/7)*100));
+  const tdsPct = Math.max(0, 100 - Math.min(100,(tds/2000)*100));
+  document.getElementById('verdict-card').className = 'verdict-card ' + cls;
+  document.getElementById('verdict-card').style.display = 'block';
+  document.getElementById('verdict-card').innerHTML = `
+    <div class="verdict-top">
+      <div class="verdict-icon">${icon}</div>
+      <div class="verdict-text">
+        <div class="verdict-headline" style="color:${cls==='vc-safe'?'#10b981':cls==='vc-warn'?'#f59e0b':'#f43f5e'}">${headline}</div>
+        <div class="verdict-sub">${sub}</div>
+      </div>
+    </div>
+    <div class="verdict-meters">
+      <div class="vm-item">
+        <div class="vm-label"><span>pH SAFETY</span><span style="color:${phColor}">${ph}</span></div>
+        <div class="vm-bar-track"><div class="vm-bar-fill" style="width:${phPct}%;background:${phColor}"></div></div>
+        <div class="vm-val" style="color:${phColor}">${ph>=6.5&&ph<=8.5?'Safe Range':'Out of Range'}</div>
+      </div>
+      <div class="vm-item">
+        <div class="vm-label"><span>TDS PURITY</span><span style="color:${tdsColor}">${tds} ppm</span></div>
+        <div class="vm-bar-track"><div class="vm-bar-fill" style="width:${tdsPct}%;background:${tdsColor}"></div></div>
+        <div class="vm-val" style="color:${tdsColor}">${tds<=500?'Within Limit':'Exceeds Limit'}</div>
+      </div>
+      <div class="vm-item">
+        <div class="vm-label"><span>WQI SCORE</span><span style="color:${wqi>=70?'#10b981':wqi>=50?'#f59e0b':'#f43f5e'}">${wqi}/100</span></div>
+        <div class="vm-bar-track"><div class="vm-bar-fill" style="width:${wqi}%;background:${wqi>=70?'#10b981':wqi>=50?'#f59e0b':'#f43f5e'}"></div></div>
+        <div class="vm-val" style="color:${wqi>=70?'#10b981':wqi>=50?'#f59e0b':'#f43f5e'}">${wqi>=70?'Good':wqi>=50?'Moderate':'Poor'}</div>
+      </div>
+      <div class="vm-item">
+        <div class="vm-label"><span>DRINKABILITY</span></div>
+        <div class="vm-bar-track"><div class="vm-bar-fill" style="width:${wqi}%;background:${wqi>=70?'#10b981':wqi>=50?'#f59e0b':'#f43f5e'}"></div></div>
+        <div class="vm-val" style="color:${wqi>=70?'#10b981':wqi>=50?'#f59e0b':'#f43f5e'}">${wqi>=80?'Drinkable':wqi>=60?'After Treatment':'Not Drinkable'}</div>
+      </div>
+    </div>`;
+}
+
+// ═══════════════════════════════════════════════
+// FIX 2: ACCURATE COST CALCULATOR
+// Real market rates (India, 2024) sourced from CPHEEO, NEERI, and market surveys
+// ═══════════════════════════════════════════════
+
+// Per-1000L costs in INR based on actual treatment methods
+const TREATMENT_COSTS = {
+  // Chemical costs (per 1000L)
+  coagulation_alum:    { name: 'Coagulation (Alum)',         cost_per_1000L: 1.5,  dose: '10–15 mg/L' },
+  coagulation_lime:    { name: 'Lime Softening',             cost_per_1000L: 2.0,  dose: '20–30 mg/L' },
+  ph_acid:             { name: 'pH Correction (Acid/CO₂)',   cost_per_1000L: 1.2,  dose: 'As needed' },
+  ph_alkali:           { name: 'pH Correction (Lime/Soda)',  cost_per_1000L: 1.0,  dose: 'As needed' },
+  sand_filter:         { name: 'Sand/Gravel Filtration',     cost_per_1000L: 0.8,  dose: 'Physical' },
+  activated_carbon:    { name: 'Activated Carbon Filter',    cost_per_1000L: 3.5,  dose: '200–500g GAC' },
+  chlorination:        { name: 'Chlorination (NaOCl)',       cost_per_1000L: 0.6,  dose: '0.2–0.5 mg/L' },
+  uv_disinfection:     { name: 'UV Disinfection (254nm)',    cost_per_1000L: 1.8,  dose: '30s exposure' },
+  ro_membrane:         { name: 'RO Membrane Treatment',      cost_per_1000L: 8.0,  dose: '4–8 bar' },  // includes membrane amortization
+  nf_membrane:         { name: 'Nanofiltration',             cost_per_1000L: 5.5,  dose: '3–5 bar' },
+  aeration:            { name: 'Aeration (Iron/Mn removal)', cost_per_1000L: 0.5,  dose: 'Spray/cascade' },
+  sedimentation:       { name: 'Sedimentation',              cost_per_1000L: 0.3,  dose: '30–45 min' },
+};
+
+// One-time infrastructure costs (amortized over 5 years, per 1000L/day capacity)
+const INFRA_COSTS = {
+  large: {
+    basic:    { setup: 85000,  capacity: 10000, label: 'Basic (coagulation + sand + chlorine)' },
+    standard: { setup: 250000, capacity: 10000, label: 'Standard (above + carbon + UV)' },
+    advanced: { setup: 750000, capacity: 10000, label: 'Advanced (above + RO/NF plant)' },
+  },
+  small: {
+    basic:    { setup: 800,   capacity: 20,  label: 'Basic (boiling + cloth filter)' },
+    standard: { setup: 4500,  capacity: 20,  label: 'Standard (candle filter + UV pen)' },
+    advanced: { setup: 12000, capacity: 20,  label: 'Advanced (household RO + UV system)' },
+  }
+};
+
+function getRequiredTreatments(ph, tds, src) {
+  const steps = [];
+  const isSurfaceWater = ['Pond Water','River Water','Lake Water','Industrial Runoff'].includes(src);
+  const isBorewell = src === 'Borewell / Groundwater';
+
+  // Step 1: Sedimentation (always for turbid sources)
+  if (isSurfaceWater) {
+    steps.push('sedimentation');
+    steps.push('coagulation_alum');
+  }
+
+  // Step 2: Aeration (for borewell/groundwater with high iron/Mn risk)
+  if (isBorewell && tds > 400) {
+    steps.push('aeration');
+  }
+
+  // Step 3: pH correction
+  if (ph < 6.5) steps.push('ph_alkali');
+  else if (ph > 8.5) steps.push('ph_acid');
+
+  // Step 4: Sand filtration (always)
+  steps.push('sand_filter');
+
+  // Step 5: Carbon filtration (if TDS > 300 or surface water)
+  if (tds > 300 || isSurfaceWater) {
+    steps.push('activated_carbon');
+  }
+
+  // Step 6: Membrane filtration based on TDS
+  if (tds > 1500) {
+    steps.push('ro_membrane');
+  } else if (tds > 700) {
+    steps.push('nf_membrane');
+  }
+
+  // Step 7: Disinfection (always)
+  if (scale === 'large') {
+    steps.push('chlorination');
+  } else {
+    steps.push('uv_disinfection');
+  }
+
+  return steps;
+}
+
+function buildCostCard(ph, tds, wqi) {
+  const card = document.getElementById('costcard');
+  card.style.display = 'block';
+
+  const treatments = getRequiredTreatments(ph, tds, source);
+  const totalOperatingPer1000L = treatments.reduce((sum, t) => sum + TREATMENT_COSTS[t].cost_per_1000L, 0);
+
+  // Infrastructure tier
+  let infraTier = 'basic';
+  if (tds > 700 || ph < 5.5 || ph > 9.5) infraTier = 'advanced';
+  else if (tds > 300 || ph < 6.5 || ph > 8.5 || ['Pond Water','River Water','Industrial Runoff'].includes(source)) infraTier = 'standard';
+
+  const infra = INFRA_COSTS[scale][infraTier];
+  // Amortized infra cost per 1000L (5 year life, 365 days/year)
+  const dailyCapacity = infra.capacity;
+  const amortizedPer1000L = (infra.setup / (5 * 365 * dailyCapacity / 1000)).toFixed(2);
+  const totalPer1000L = (totalOperatingPer1000L + parseFloat(amortizedPer1000L)).toFixed(2);
+
+  // Volume-based annual estimates
+  const annualL = scale === 'large' ? 3650000 : 365 * 4; // 10,000L/day large vs 4L/day small drinking
+  const annualOpCost = Math.round((totalOperatingPer1000L / 1000) * annualL);
+  const monthlyOpCost = Math.round(annualOpCost / 12);
+
+  document.getElementById('cost-tiles').innerHTML = `
+    <div class="cost-tile">
+      <div class="cost-tile-icon">⚗️</div>
+      <div class="cost-tile-val">${treatments.length}</div>
+      <div class="cost-tile-label">Treatment Stages</div>
+    </div>
+    <div class="cost-tile">
+      <div class="cost-tile-icon">💧</div>
+      <div class="cost-tile-val">₹${totalOperatingPer1000L.toFixed(1)}</div>
+      <div class="cost-tile-label">Op. Cost / 1,000 L</div>
+    </div>
+    <div class="cost-tile">
+      <div class="cost-tile-icon">🏗️</div>
+      <div class="cost-tile-val">₹${Number(infra.setup).toLocaleString('en-IN')}</div>
+      <div class="cost-tile-label">Setup Cost (One-Time)</div>
+    </div>
+    <div class="cost-tile">
+      <div class="cost-tile-icon">📅</div>
+      <div class="cost-tile-val">₹${monthlyOpCost.toLocaleString('en-IN')}</div>
+      <div class="cost-tile-label">Est. Monthly Op. Cost</div>
+    </div>`;
+}
+
+function calcCost() {
+  const vol = parseFloat(document.getElementById('cost-vol').value) || 1000;
+  const ph = parseFloat(document.getElementById('ph').value) || 7;
+  const tds = parseFloat(document.getElementById('tds').value) || 300;
+
+  const treatments = getRequiredTreatments(ph, tds, source);
+  const totalPer1000L = treatments.reduce((sum, t) => sum + TREATMENT_COSTS[t].cost_per_1000L, 0);
+  const totalCost = (totalPer1000L / 1000) * vol;
+
+  // Infrastructure
+  let infraTier = 'basic';
+  if (tds > 700 || ph < 5.5 || ph > 9.5) infraTier = 'advanced';
+  else if (tds > 300 || ph < 6.5 || ph > 8.5 || ['Pond Water','River Water','Industrial Runoff'].includes(source)) infraTier = 'standard';
+  const infra = INFRA_COSTS[scale][infraTier];
+  const amortizedForVol = (infra.setup / (5 * 365)) * (vol / (scale === 'large' ? 10000 : 20));
+
+  const grandTotal = totalCost + amortizedForVol;
+
+  // Build breakdown
+  const breakdownRows = treatments.map(t => {
+    const tc = TREATMENT_COSTS[t];
+    const lineCost = (tc.cost_per_1000L / 1000) * vol;
+    return `<div class="cost-breakdown-row">
+      <span class="cb-name">${tc.name}</span>
+      <span class="cb-val">₹${lineCost.toFixed(2)}</span>
+    </div>`;
+  }).join('');
+
+  const el = document.getElementById('cost-result');
+  el.className = 'cost-result on';
+  el.innerHTML = `
+    <strong style="color:var(--water)">For ${vol.toLocaleString('en-IN')} litres of ${source}:</strong>
+    <div class="cost-breakdown" style="margin-top:10px;">
+      <div style="font-family:var(--font-mono);font-size:0.6rem;letter-spacing:2px;color:var(--water);margin-bottom:6px;">OPERATING COST BREAKDOWN</div>
+      ${breakdownRows}
+      <div class="cost-total-row">
+        <span style="font-family:var(--font-mono);font-size:0.7rem;color:var(--text);">OPERATING TOTAL</span>
+        <span style="font-family:var(--font-display);font-size:1.1rem;font-weight:800;color:var(--emerald);">₹${totalCost.toFixed(2)}</span>
+      </div>
+      <div class="cost-total-row" style="background:rgba(245,158,11,0.08);border-color:rgba(245,158,11,0.2);margin-top:6px;">
+        <span style="font-family:var(--font-mono);font-size:0.7rem;color:var(--text);">+ INFRA (amortized 5yr)</span>
+        <span style="font-family:var(--font-display);font-size:1rem;font-weight:700;color:var(--amber);">₹${amortizedForVol.toFixed(2)}</span>
+      </div>
+      <div class="cost-total-row" style="background:rgba(14,165,233,0.1);border-color:rgba(14,165,233,0.3);margin-top:6px;">
+        <span style="font-family:var(--font-mono);font-size:0.72rem;font-weight:700;color:var(--white);">GRAND TOTAL</span>
+        <span style="font-family:var(--font-display);font-size:1.2rem;font-weight:800;color:var(--water);">₹${grandTotal.toFixed(2)}</span>
+      </div>
+    </div>
+    <div class="cost-note">
+      📌 Infrastructure tier: <strong style="color:var(--text)">${infra.label}</strong> — Setup: ₹${infra.setup.toLocaleString('en-IN')}<br>
+      📌 Operating cost rate: ₹${totalPer1000L.toFixed(2)} per 1,000 L (chemicals + energy + consumables)<br>
+      📌 Source: CPHEEO Manual 2023 rates, NEERI benchmarks, market survey India 2024<br>
+      📌 WHO: Every ₹1 spent on water treatment prevents ₹4–12 in healthcare costs
+    </div>`;
+}
+
+// ═══════════════════════════════════════════════
+// SCAN HISTORY
+// ═══════════════════════════════════════════════
+function addToHistory(ph, tds, wqi, src) {
+  const now = new Date();
+  const timeStr = now.toLocaleTimeString('en-IN', {hour:'2-digit',minute:'2-digit'}) + ' · ' + now.toLocaleDateString('en-IN', {day:'numeric',month:'short'});
+  scanHistory.unshift({ ph, tds, wqi, src: src || source, scale, time: timeStr });
+  if (scanHistory.length > 20) scanHistory.pop();
+  renderHistory();
+}
+function renderHistory() {
+  const el = document.getElementById('history-list');
+  document.getElementById('hist-count').textContent = scanHistory.length + ' scan' + (scanHistory.length !== 1 ? 's' : '');
+  if (!scanHistory.length) { el.innerHTML = '<div class="history-empty">No scans yet — run your first analysis above ↑</div>'; return; }
+  el.innerHTML = '<div class="history-list">' + scanHistory.map((s,i) => {
+    const phCls = s.ph>=6.5&&s.ph<=8.5?'hi-ph-good':s.ph>=5.5&&s.ph<=9.5?'hi-ph-warn':'hi-ph-bad';
+    const tdsCls = s.tds<=500?'hi-tds-good':s.tds<=1000?'hi-tds-warn':'hi-tds-bad';
+    const wqiCol = s.wqi>=70?'#10b981':s.wqi>=50?'#f59e0b':'#f43f5e';
+    return `<div class="history-item" onclick="reloadScan(${i})">
+      <div class="hi-num">#${scanHistory.length-i}</div>
+      <div class="hi-source">${s.src} · ${s.scale==='large'?'🏭 Large':'🚰 Small'}</div>
+      <div class="hi-vals">
+        <span class="hi-val ${phCls}">pH ${s.ph}</span>
+        <span class="hi-val ${tdsCls}">${s.tds} ppm</span>
+        <span class="hi-val" style="background:rgba(255,255,255,0.04);color:${wqiCol}">WQI ${s.wqi}</span>
+      </div>
+      <div class="hi-time">${s.time}</div>
+    </div>`;
+  }).join('') + '</div>';
+}
+function reloadScan(idx) {
+  const s = scanHistory[idx];
+  document.getElementById('ph').value = s.ph;
+  document.getElementById('tds').value = s.tds;
+  scale = s.scale;
+  document.getElementById('sc-large').classList.toggle('on', s.scale==='large');
+  document.getElementById('sc-small').classList.toggle('on', s.scale==='small');
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+function clearHistory() { scanHistory = []; renderHistory(); }
+
+// ═══════════════════════════════════════════════
+// HELPERS
+// ═══════════════════════════════════════════════
+function pickScale(s) {
+  scale = s;
+  document.getElementById('sc-large').classList.toggle('on', s==='large');
+  document.getElementById('sc-small').classList.toggle('on', s==='small');
+}
+function pick(el, s) {
+  document.querySelectorAll('.pill').forEach(p => p.classList.remove('on'));
+  el.classList.add('on'); source = s;
+}
+function preset(ph, tds, src, srcLabel) {
+  document.getElementById('ph').value = ph;
+  document.getElementById('tds').value = tds;
+  document.querySelectorAll('.pill').forEach(p => { if (p.textContent.trim() === srcLabel) p.click(); });
+}
+function clamp(v,a,b){return Math.max(a,Math.min(b,v));}
+function phStatus(v) {
+  if (v>=6.5&&v<=8.5) return {lbl:'SAFE',cls:'s-safe',col:'#10b981'};
+  if ((v>=6.0&&v<6.5)||(v>8.5&&v<=9.5)) return {lbl:'MODERATE',cls:'s-mild',col:'#f59e0b'};
+  return {lbl:'UNSAFE',cls:'s-poor',col:'#f43f5e'};
+}
+function tdsStatus(v) {
+  if (v<=300) return {lbl:'EXCELLENT',cls:'s-safe',col:'#10b981'};
+  if (v<=500) return {lbl:'GOOD',cls:'s-safe',col:'#34d399'};
+  if (v<=1000) return {lbl:'MODERATE',cls:'s-mild',col:'#f59e0b'};
+  if (v<=2000) return {lbl:'POOR',cls:'s-poor',col:'#f43f5e'};
+  return {lbl:'CRITICAL',cls:'s-crit',col:'#ff4d6d'};
+}
+function buildGauges(ph, tds) {
+  const ps = phStatus(ph), ts = tdsStatus(tds);
+  const phPct = (ph / 14) * 100;
+  const tdsPct = clamp((tds / 2500) * 100, 0, 100);
+  const R=56,CX=70,CY=70,C=2*Math.PI*R;
+  function ring(pct,c1,c2,gid){
+    const d=clamp(pct,2,99)/100*C;
+    return `<svg viewBox="0 0 140 140" width="140" height="140" style="transform:rotate(-90deg)">
+      <defs><linearGradient id="${gid}" x1="0%" y1="0%" x2="100%" y2="0%"><stop offset="0%" stop-color="${c1}"/><stop offset="100%" stop-color="${c2}"/></linearGradient></defs>
+      <circle cx="${CX}" cy="${CY}" r="${R}" fill="none" stroke="rgba(255,255,255,0.05)" stroke-width="10"/>
+      <circle cx="${CX}" cy="${CY}" r="${R}" fill="none" stroke="url(#${gid})" stroke-width="10" stroke-dasharray="${d} ${C-d}" stroke-linecap="round"/>
+    </svg>`;
+  }
+  return `
+  <div class="gauge-card">
+    <div class="gc-label">pH Level</div>
+    <div class="gc-ring">${ring(phPct,'#10b981','#06b6d4','phg')}<div class="gc-center"><div class="gc-value" style="color:${ps.col}">${ph}</div><div class="gc-unit">pH</div></div></div>
+    <div class="gc-status ${ps.cls}"><span>●</span> ${ps.lbl}</div>
+  </div>
+  <div class="gauge-card">
+    <div class="gc-label">TDS — Total Dissolved Solids</div>
+    <div class="gc-ring">${ring(tdsPct,'#0ea5e9','#f59e0b','tdsg')}<div class="gc-center"><div class="gc-value" style="color:${ts.col}">${tds}</div><div class="gc-unit">ppm</div></div></div>
+    <div class="gc-status ${ts.cls}"><span>●</span> ${ts.lbl}</div>
+  </div>`;
+}
+function calcWQI(ph, tds) {
+  let score = 100;
+  const phDev = Math.abs(ph - 7.0);
+  if (phDev > 0) score -= Math.min(35, phDev * 9);
+  if (tds > 500)  score -= Math.min(30, ((tds-500)/500)*25);
+  if (tds > 1000) score -= Math.min(20, ((tds-1000)/1000)*20);
+  if (tds > 2000) score -= 15;
+  return Math.max(0, Math.round(score));
+}
+function wqiVerdict(s) {
+  if (s>=90) return ['#10b981','Excellent — Safe for drinking with minimal treatment.'];
+  if (s>=70) return ['#34d399','Good — Minor treatment recommended before consumption.'];
+  if (s>=50) return ['#f59e0b','Moderate — Multi-step treatment required. Not for direct drinking.'];
+  if (s>=30) return ['#fb923c','Poor — Significant purification needed. Agricultural use only until treated.'];
+  return ['#f43f5e','Critical — Heavily contaminated. Multiple purification stages mandatory.'];
+}
+function buildWQI(ph, tds) {
+  const score = calcWQI(ph, tds);
+  const [col, verdict] = wqiVerdict(score);
+  return `
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:18px;flex-wrap:wrap;gap:8px;">
+      <div class="sec-label" style="margin-bottom:0;">Water Quality Index</div>
+      <div id="scale-badge"></div>
+    </div>
+    <div class="wqi-row">
+      <div class="wqi-score-box"><div class="wqi-num" style="color:${col}">${score}</div><div class="wqi-label">OUT OF 100</div></div>
+      <div class="wqi-track-wrap">
+        <div class="wqi-track-label"><span>Critical</span><span>Moderate</span><span>Excellent</span></div>
+        <div class="wqi-track"><div class="wqi-needle" style="left:${score}%"></div></div>
+        <div class="wqi-verdict" style="color:${col};margin-top:12px;"><strong>${verdict}</strong></div>
+      </div>
+    </div>`;
+}
+
+// ═══════════════════════════════════════════════
+// MAIN ANALYZE FUNCTION
+// ═══════════════════════════════════════════════
+async function go() {
+  if (isAnalyzing) return;
+  isAnalyzing = true;
+
+  if (isConnected && lastLivePH !== null && lastLiveTDS !== null) {
+    document.getElementById('ph').value = lastLivePH;
+    document.getElementById('tds').value = lastLiveTDS;
+  }
+  const ph = parseFloat(document.getElementById('ph').value);
+  const tds = parseFloat(document.getElementById('tds').value);
+  if (isNaN(ph) || isNaN(tds)) {
+    alert('⚠️ Please enter both pH and TDS values.');
+    isAnalyzing = false; return;
+  }
+
+  const btn = document.getElementById('abtn');
+  btn.disabled = true; btn.textContent = '⏳ Analyzing...';
+
+  document.getElementById('results').classList.add('on');
+  const wqi = calcWQI(ph, tds);
+  buildVerdict(ph, tds, wqi);
+  buildCostCard(ph, tds, wqi);
+  addToHistory(ph, tds, wqi, source);
+  document.getElementById('gauges').innerHTML = buildGauges(ph, tds);
+  document.getElementById('wqicard').innerHTML = buildWQI(ph, tds);
+
+  const sbEl = document.getElementById('scale-badge');
+  if (sbEl) {
+    if (scale==='large') { sbEl.textContent='🏭 LARGE SCALE · 1,000+ L'; sbEl.style.cssText='font-family:var(--font-mono);font-size:0.62rem;padding:5px 12px;border-radius:8px;letter-spacing:1px;background:rgba(14,165,233,0.1);color:var(--water);border:1px solid rgba(14,165,233,0.25);'; }
+    else { sbEl.textContent='🚰 SMALL SCALE · HOUSEHOLD'; sbEl.style.cssText='font-family:var(--font-mono);font-size:0.62rem;padding:5px 12px;border-radius:8px;letter-spacing:1px;background:rgba(16,185,129,0.1);color:#10b981;border:1px solid rgba(16,185,129,0.25);'; }
+  }
+  document.getElementById('aout').innerHTML = '';
+  document.getElementById('dots').style.display = 'flex';
+
+  const scaleLabel = scale==='large' ? 'Large Scale (1,000+ Litres — Agricultural / Industrial / Municipal)' : 'Small Scale (Under 1,000 Litres — Household / Drinking / Cooking / Lab)';
+
+  const prompt = `You are AquaSense AI, an advanced water quality intelligence engine. Analyze the water sample below and produce a comprehensive, professional, expert-level HTML report. Be specific, cite real-world statistics, reference global water crisis data, and provide innovative ideas.
+
+SAMPLE DATA:
+- Water Source: ${source}
+- pH: ${ph} (safe range 6.5–8.5; neutral = 7.0)
+- TDS: ${tds} ppm (WHO drinking limit: 500 ppm; acceptable: up to 1000 ppm)
+- Water Quality Index (computed): ${wqi}/100
+- Analysis Scale: ${scaleLabel}
+
+RESPOND WITH ONLY CLEAN HTML FRAGMENTS. No markdown, no backticks, no preamble. Use this structure:
+
+<div class="out-block">
+<div class="out-title"><span class="ot-icon">🌍</span> REAL-WORLD WATER CRISIS CONTEXT</div>
+<div class="assessment-text">
+[3-4 sentences connecting this sample to real-world problems. Include real statistics. Use <strong> for key facts. Use hl-good/hl-warn/hl-bad spans for values.]
+</div>
+</div>
+
+[ONE alert div based on safety level]
+
+<div class="out-block">
+<div class="out-title"><span class="ot-icon">⚗️</span> PURIFICATION PROTOCOL — ${scale==='large'?'LARGE SCALE (1,000+ L)':'SMALL SCALE (HOUSEHOLD)'}</div>
+<div class="step-list">
+[6 purification steps tailored to scale, pH=${ph}, TDS=${tds}. Each as:
+<div class="step"><div class="step-badge sb1">01</div><div class="step-info"><div class="step-name">Name <span class="step-tag t-chem">CHEMICAL</span></div><div class="step-desc">Specific explanation with doses and outcomes.</div></div></div>
+Use sb1–sb6 for priority badges. Tags: t-chem, t-phys, t-bio, t-elec]
+</div>
+</div>
+
+<div class="out-block">
+<div class="out-title"><span class="ot-icon">💡</span> APPLICATIONS OF TREATED WATER</div>
+<div class="uc-grid">
+[6 uc-tile divs relevant to scale and water quality]
+</div>
+</div>
+
+<div class="out-block">
+<div class="out-title"><span class="ot-icon">📊</span> PARAMETER BENCHMARKING vs GLOBAL STANDARDS</div>
+<div class="tbl-wrap"><table>
+<thead><tr><th>Parameter</th><th>Measured Value</th><th>WHO Standard</th><th>BIS India</th><th>EPA (USA)</th><th>Verdict</th></tr></thead>
+<tbody>
+[Rows for pH, TDS, WQI with tv-good/tv-warn/tv-bad classes]
+</tbody>
+</table></div>
+</div>
+
+<div class="out-block">
+<div class="out-title"><span class="ot-icon">🩺</span> HEALTH RISK ANALYSIS</div>
+<div class="assessment-text">
+[Detailed health risks for pH=${ph} TDS=${tds}. Diseases, at-risk demographics, WHO statistics. Use hl-bad for dangers, hl-warn for moderate risks.]
+</div>
+</div>
+
+<div class="out-block">
+<div class="out-title"><span class="ot-icon">🚀</span> INNOVATIVE SOLUTIONS</div>
+<div class="insight">
+[5–6 innovative treatment ideas specific to this water quality and scale. Include costs in INR, effectiveness %, scientific evidence. Use <strong> for technique names.]
+</div>
+</div>
+
+<div class="out-block">
+<div class="out-title"><span class="ot-icon">🌿</span> NATURE-BASED PURIFICATION</div>
+<div class="insight">
+[4–5 nature-inspired methods: Moringa seeds, bamboo charcoal, SODIS, constructed wetlands, etc. Mention effectiveness % and relevance to this specific water.]
+</div>
+</div>`;
+
+  try {
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': window._AQ_KEY || '',
+        'anthropic-version': '2023-06-01',
+        'anthropic-dangerous-direct-browser-access': 'true'
+      },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-5',
+        max_tokens: 2500,
+        messages: [{ role: 'user', content: prompt }]
+      })
+    });
+    const data = await res.json();
+    if (data.error) throw new Error(data.error.message || 'API error');
+    const raw = (data.content||[]).map(i=>i.text||'').join('');
+    const html = raw.replace(/```html?|```/g,'').trim();
+    document.getElementById('dots').style.display = 'none';
+    const el = document.getElementById('aout');
+    el.style.opacity = '0'; el.innerHTML = html || fallback(ph, tds, wqi);
+    el.style.transition = 'opacity 0.35s ease';
+    requestAnimationFrame(() => { el.style.opacity = '1'; });
+  } catch(e) {
+    document.getElementById('dots').style.display = 'none';
+    const el = document.getElementById('aout');
+    el.style.opacity = '0'; el.innerHTML = fallback(ph, tds, wqi);
+    el.style.transition = 'opacity 0.35s ease';
+    requestAnimationFrame(() => { el.style.opacity = '1'; });
+  }
+
+  btn.disabled = false; btn.innerHTML = '⚡&nbsp;&nbsp;RUN AI WATER ANALYSIS';
+  isAnalyzing = false;
+  setTimeout(() => document.getElementById('results').scrollIntoView({behavior:'smooth',block:'start'}), 200);
+}
+
+// ═══════════════════════════════════════════════
+// FALLBACK (no API key)
+// ═══════════════════════════════════════════════
+function fallback(ph, tds, wqi) {
+  const ps = phStatus(ph), ts = tdsStatus(tds);
+  const steps = [];
+  if (['Pond Water','River Water','Lake Water','Industrial Runoff'].includes(source)) {
+    steps.push({n:'01',sb:'sb1',name:'Sedimentation',tag:'t-phys',type:'PHYSICAL',desc:`Allow ${source} to settle for <strong>30–45 minutes</strong> in a calm tank. Coarse particles and suspended sediment will settle to the bottom. Decant the clear supernatant only.`});
+    steps.push({n:'02',sb:'sb2',name:'Coagulation + Flocculation',tag:'t-chem',type:'CHEMICAL',desc:`Add <strong>Alum (Al₂(SO₄)₃) at 10–15 mg/L</strong>. Stir vigorously 2 min, then slowly 15 min. Flocs form and trap colloidal particles. Expected turbidity reduction: 85–95%.`});
+  }
+  if (ph<6.5) steps.push({n:'0'+(steps.length+1),sb:'sb3',name:'pH Correction — Alkalization',tag:'t-chem',type:'CHEMICAL',desc:`pH ${ph} is acidic. Add <strong>Hydrated Lime Ca(OH)₂ at 3–6 mg/L per 1,000 L</strong> while stirring. Recheck every 5 min until pH reaches 6.8–7.2. Alternative: food-grade Soda Ash (Na₂CO₃).`});
+  else if (ph>8.5) steps.push({n:'0'+(steps.length+1),sb:'sb3',name:'pH Correction — Acidification',tag:'t-chem',type:'CHEMICAL',desc:`pH ${ph} is alkaline. Inject <strong>CO₂ at 2–4 mg/L</strong> or citric acid dropwise. Recheck until pH reaches 7.0–7.5. CO₂ injection is safest for lab demonstrations.`});
+  steps.push({n:'0'+(steps.length+1),sb:'sb4',name:'Sand + Gravel Filtration',tag:'t-phys',type:'PHYSICAL',desc:`Pass water through a <strong>3-layer filter: 30cm gravel → 20cm coarse sand → 15cm fine sand</strong>. Flow rate: 4–8 L/m²/min. Removes particles ≥ 10 microns effectively.`});
+  if (tds>500) steps.push({n:'0'+(steps.length+1),sb:'sb4',name:'Activated Carbon Adsorption',tag:'t-phys',type:'PHYSICAL',desc:`TDS ${tds} ppm. Pass water through <strong>500g GAC per 10 L/hr</strong> flow. Removes dissolved organics, chlorine, heavy metals. Reduces taste and odour significantly.`});
+  if (tds>900) steps.push({n:'0'+(steps.length+1),sb:'sb4',name:'Reverse Osmosis / Nanofiltration',tag:'t-phys',type:'PHYSICAL',desc:`TDS ${tds} ppm exceeds safe limit. RO membrane (0.0001 micron, 4–8 bar) reduces TDS by <strong>85–95%</strong> to ~${Math.round(tds*0.1)}–${Math.round(tds*0.15)} ppm. Household RO units: ₹4,000–8,000.`});
+  steps.push({n:'0'+(steps.length+1),sb:'sb5',name:'UV / Chlorine Disinfection',tag:'t-bio',type:'BIOLOGICAL',desc:`Final pathogen kill. <strong>UV lamp 254nm for 30 seconds</strong> (zero chemicals, lab-friendly). OR add <strong>0.2–0.5 mg/L NaOCl</strong> with 30-min contact time. Both achieve 99.99% pathogen removal.`});
+  steps.push({n:'0'+(steps.length+1),sb:'sb6',name:'Post-Treatment Verification',tag:'t-elec',type:'SENSOR',desc:`Re-read both sensors. Target: <strong>pH 6.8–7.5, TDS &lt; 500 ppm</strong>. Log before/after on Arduino Serial Monitor. This demonstrates quantifiable improvement for your project review.`});
+
+  const usecases = tds>1000?[
+    {e:'🌾',t:'Agricultural Irrigation',d:'Suitable for most crops after coagulation'},
+    {e:'🏗️',t:'Construction',d:'Concrete mixing, brick curing, road work'},
+    {e:'🚿',t:'Industrial Sanitation',d:'Equipment washing, cooling towers'},
+    {e:'🔥',t:'Fire Suppression',d:'Suitable for firefighting systems'},
+    {e:'♻️',t:'Greywater Reuse',d:'Toilet flushing, landscaping'},
+    {e:'🌊',t:'Aquaculture',d:'Fish farming with pH management'},
+  ]:tds>500?[
+    {e:'🌱',t:'Drip Irrigation',d:'Vegetable and crop irrigation'},
+    {e:'🚿',t:'Domestic Cleaning',d:'Floor, vehicle, utensil washing'},
+    {e:'💊',t:'Lab Use (post-RO)',d:'After RO treatment for lab applications'},
+    {e:'🏭',t:'Industrial Processes',d:'Boiler feed, cooling towers after treatment'},
+    {e:'🐟',t:'Aquaculture',d:'Fish farming with pH management'},
+    {e:'♻️',t:'Greywater',d:'Toilet flushing after basic treatment'},
+  ]:[
+    {e:'🚰',t:'Drinking Water',d:'Safe after disinfection — meets WHO standards'},
+    {e:'🍳',t:'Cooking & Food Prep',d:'Suitable for all culinary applications'},
+    {e:'🌱',t:'Hydroponics',d:'Ideal low-TDS water for nutrient mixing'},
+    {e:'💊',t:'Pharmaceutical',d:'Meets basic purity for lab and pharma use'},
+    {e:'🐟',t:'Aquariums',d:'Excellent for aquatic life'},
+    {e:'☕',t:'Beverages',d:'Good mineral balance for tea, coffee'},
+  ];
+
+  return `
+  <div class="out-block">
+    <div class="out-title"><span class="ot-icon">🔬</span> WATER QUALITY ASSESSMENT</div>
+    <div class="assessment-text">
+      The <strong>${source}</strong> sample shows <span class="${ph>=6.5&&ph<=8.5?'hl-good':ph>=6.0&&ph<=9.0?'hl-warn':'hl-bad'}">pH ${ph}</span> — ${ps.lbl.toLowerCase()} range — and
+      <span class="${tds<=500?'hl-good':tds<=1000?'hl-warn':'hl-bad'}">TDS ${tds} ppm</span> — ${ts.lbl.toLowerCase()} quality.
+      ${ph<6.5?`The acidic pH can leach <strong>lead, copper and iron</strong> from pipes causing health issues.`:ph>8.5?`Alkaline pH indicates excessive mineral loading causing scaling and digestive issues.`:`pH is within WHO-recommended range.`}
+      ${tds>1000?`TDS of <strong>${tds} ppm</strong> significantly exceeds the WHO limit of 500 ppm — high mineral content, unsafe for direct drinking.`:tds>500?`TDS slightly exceeds WHO limit — treatment strongly advised.`:`TDS is within safe drinking water standards.`}
+      Water Quality Index: <strong>${wqi}/100</strong>.
+    </div>
+  </div>
+
+  ${(ph<6.5||ph>9.0||tds>1000)?
+    `<div class="alert a-bad"><div class="alert-icon">⚠️</div><div><strong>Warning:</strong> pH ${ph} and TDS ${tds} ppm — NOT safe for consumption without multi-stage treatment.</div></div>`:
+    (tds>500||ph<6.5||ph>8.5)?
+    `<div class="alert a-warn"><div class="alert-icon">⚠️</div><div><strong>Caution:</strong> Basic treatment required. pH or TDS is outside optimal range.</div></div>`:
+    `<div class="alert a-good"><div class="alert-icon">✅</div><div><strong>Good:</strong> pH ${ph} and TDS ${tds} ppm are within safe parameters. Disinfection still recommended.</div></div>`
+  }
+
+  <div class="out-block">
+    <div class="out-title"><span class="ot-icon">⚗️</span> PURIFICATION PROTOCOL — PRIORITY SEQUENCE</div>
+    <div class="step-list">
+      ${steps.map(s=>`<div class="step"><div class="step-badge ${s.sb}">${s.n}</div><div class="step-info"><div class="step-name">${s.name} <span class="step-tag ${s.tag}">${s.type}</span></div><div class="step-desc">${s.desc}</div></div></div>`).join('')}
+    </div>
+  </div>
+
+  <div class="out-block">
+    <div class="out-title"><span class="ot-icon">💡</span> APPLICATIONS OF PURIFIED WATER</div>
+    <div class="uc-grid">
+      ${usecases.map(u=>`<div class="uc-tile"><div class="uc-emoji">${u.e}</div><div class="uc-text"><strong>${u.t}</strong><span>${u.d}</span></div></div>`).join('')}
+    </div>
+  </div>
+
+  <div class="out-block">
+    <div class="out-title"><span class="ot-icon">📊</span> PARAMETER BENCHMARKING</div>
+    <div class="tbl-wrap"><table>
+      <thead><tr><th>Parameter</th><th>Your Reading</th><th>WHO Standard</th><th>BIS (India)</th><th>Verdict</th></tr></thead>
+      <tbody>
+        <tr><td>pH</td><td class="${ph>=6.5&&ph<=8.5?'tv-good':ph>=6.0&&ph<=9.0?'tv-warn':'tv-bad'}">${ph}</td><td>6.5–8.5</td><td>6.5–8.5</td><td>${ph>=6.5&&ph<=8.5?'✅ Safe':'⚠️ Needs correction'}</td></tr>
+        <tr><td>TDS</td><td class="${tds<=500?'tv-good':tds<=1000?'tv-warn':'tv-bad'}">${tds} ppm</td><td>500 ppm</td><td>500 ppm (max 2000)</td><td>${tds<=500?'✅ Excellent':tds<=1000?'⚠️ Moderate':'❌ Exceeds limit'}</td></tr>
+        <tr><td>WQI Score</td><td class="${wqi>=70?'tv-good':wqi>=50?'tv-warn':'tv-bad'}">${wqi}/100</td><td>≥70 Good</td><td>≥65 Acceptable</td><td>${wqi>=70?'✅ Good':wqi>=50?'⚠️ Moderate':'❌ Poor'}</td></tr>
+      </tbody>
+    </table></div>
+  </div>
+
+  <div class="out-block">
+    <div class="out-title"><span class="ot-icon">🩺</span> HEALTH RISK ANALYSIS</div>
+    <div class="assessment-text">
+      ${ph<6.5?`<strong>Acidic water (pH ${ph})</strong> can leach <span class="hl-bad">lead and copper</span> from pipes causing neurological damage in children. Linked to kidney disease and GI disorders.`:ph>8.5?`<strong>Alkaline water (pH ${ph})</strong> can cause <span class="hl-warn">GI irritation</span> and kidney stones over time.`:`<strong>pH ${ph}</strong> is safe — <span class="hl-good">no pH-related risks</span>.`}
+      ${tds>1000?`<br><br><strong>High TDS (${tds} ppm)</strong> — potential <span class="hl-bad">heavy metals, fluoride, nitrates</span>. WHO links high-TDS groundwater to <strong>fluorosis</strong> and <strong>methemoglobinemia in infants</strong>. Affects 200 million Indians.`:tds>500?`<br><br><strong>TDS ${tds} ppm</strong> exceeds safe limit. Long-term consumption linked to <span class="hl-warn">kidney stones</span> and cardiovascular stress.`:`<br><br><strong>TDS ${tds} ppm</strong> is within safe limits — <span class="hl-good">mineral content acceptable</span>.`}
+    </div>
+  </div>`;
+}
+
+// ═══════════════════════════════════════════════
+// INIT
+// ═══════════════════════════════════════════════
+(function(){
+  try {
+    const k = localStorage.getItem('aqk');
+    if (k) {
+      window._AQ_KEY = k;
+      const inp = document.getElementById('apikey');
+      if (inp) {
+        inp.value = k;
+        const v = k.startsWith('sk-ant-') && k.length > 20;
+        const s = document.getElementById('kstat');
+        if (s) { s.textContent = v?'✅ SET':'⚠️ CHECK'; s.style.color = v?'#10b981':'#f59e0b'; }
+      }
+    }
+  } catch(e) {}
+})();
+
+// Floating particles
+(function(){
+  const canvas = document.getElementById('particles');
+  if(!canvas) return;
+  const ctx = canvas.getContext('2d');
+  let W, H, pts = [];
+  function resize(){ W = canvas.width = window.innerWidth; H = canvas.height = window.innerHeight; }
+  resize(); window.addEventListener('resize', resize);
+  for(let i=0;i<55;i++) pts.push({
+    x:Math.random()*2000, y:Math.random()*1200,
+    r:Math.random()*1.8+0.3,
+    vx:(Math.random()-0.5)*0.3, vy:(Math.random()-0.5)*0.3,
+    a:Math.random()*0.5+0.15,
+    c:Math.random()>0.5?'14,165,233':'6,182,212'
+  });
+  function draw(){
+    ctx.clearRect(0,0,W,H);
+    pts.forEach(p=>{
+      ctx.beginPath(); ctx.arc(p.x,p.y,p.r,0,Math.PI*2);
+      ctx.fillStyle=`rgba(${p.c},${p.a})`; ctx.fill();
+      p.x+=p.vx; p.y+=p.vy;
+      if(p.x<0||p.x>W) p.vx*=-1;
+      if(p.y<0||p.y>H) p.vy*=-1;
+    });
+    for(let i=0;i<pts.length;i++){
+      for(let j=i+1;j<pts.length;j++){
+        const dx=pts[i].x-pts[j].x, dy=pts[i].y-pts[j].y;
+        const dist=Math.sqrt(dx*dx+dy*dy);
+        if(dist<120){
+          ctx.beginPath(); ctx.moveTo(pts[i].x,pts[i].y); ctx.lineTo(pts[j].x,pts[j].y);
+          ctx.strokeStyle=`rgba(14,165,233,${0.06*(1-dist/120)})`; ctx.lineWidth=0.5; ctx.stroke();
+        }
+      }
+    }
+    requestAnimationFrame(draw);
+  }
+  draw();
+})();
+</script>
+</body>
+</html>
